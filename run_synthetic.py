@@ -46,14 +46,13 @@ def UAE(prediction, reference):
                      np.linalg.norm(reference, axis = 0)))
 
 
-
 def run_example(n_samples,
-                noise,
                 ambient_dim,
-                var_f,
+                noise,
                 ball_radius,
-                n_levelsets,
                 n_neighbors,
+                n_levelsets,
+                var_f,
                 xlow,
                 xhigh,
                 f_on_manifold,
@@ -61,7 +60,7 @@ def run_example(n_samples,
                 f_f_error_CV,
                 f_f_error_test,
                 comp_time,
-                rep, ctr_j, ctr_k, ctr_kk, ctr_n, ctr_m, ctr_nn, # Indices to write into
+                rep, i1, i2, i3, i4, i6, i7, # Indices to write into
                 xlow_error = None,
                 xhigh_error = None,
                 levelset_modus = 'number',
@@ -153,12 +152,12 @@ def run_example(n_samples,
     # Error Calculations
     # Function Error
     if isinstance(n_neighbors, (int,long)):
-        f_f_error_CV[ctr_j,ctr_k,ctr_kk,ctr_n,ctr_m,0,ctr_nn,rep] = UAE(np.reshape(fval_predict_CV, (1,-1))[0,idx_cv_error], np.reshape(fval_CV, (1,-1))[0,idx_cv_error])
-        f_f_error_test[ctr_j,ctr_k,ctr_kk,ctr_n,ctr_m,0,ctr_nn,rep] = UAE(np.reshape(fval_predict_test, (1,-1))[0,idx_test_error], np.reshape(fval_test, (1,-1))[0,idx_test_error])
+        f_f_error_CV[i1,i2,i3,i4,0,i6,i7,rep] = UAE(np.reshape(fval_predict_CV, (1,-1))[0,idx_cv_error], np.reshape(fval_CV, (1,-1))[0,idx_cv_error])
+        f_f_error_test[i1,i2,i3,i4,0,i6,i7,rep] = UAE(np.reshape(fval_predict_test, (1,-1))[0,idx_test_error], np.reshape(fval_test, (1,-1))[0,idx_test_error])
     else:
         for l, _ in enumerate(n_neighbors):
-            f_f_error_CV[ctr_j,ctr_k,ctr_kk,ctr_n,ctr_m,l,ctr_nn,rep] = UAE(np.reshape(fval_predict_CV[:,l], (1,-1))[0,idx_cv_error], np.reshape(fval_CV, (1,-1))[0,idx_cv_error])
-            f_f_error_test[ctr_j,ctr_k,ctr_kk,ctr_n,ctr_m,l,ctr_nn,rep] = UAE(np.reshape(fval_predict_test[:,l], (1,-1))[0,idx_test_error], np.reshape(fval_test, (1,-1))[0,idx_test_error])
+            f_f_error_CV[i1,i2,i3,i4,l,i6,i7,rep] = UAE(np.reshape(fval_predict_CV[:,l], (1,-1))[0,idx_cv_error], np.reshape(fval_CV, (1,-1))[0,idx_cv_error])
+            f_f_error_test[i1,i2,i3,i4,l,i6,i7,rep] = UAE(np.reshape(fval_predict_test[:,l], (1,-1))[0,idx_test_error], np.reshape(fval_test, (1,-1))[0,idx_test_error])
     # Tangent Error
     J =  len(set(nsim_kNN.labels_))
     tan_errs = np.zeros(J)
@@ -168,14 +167,14 @@ def run_example(n_samples,
             real_tangent = apply_rotation.dot(f_manifold.get_tangent(tmean))
             tan_errs[i] = np.minimum(np.linalg.norm(real_tangent - nsim_kNN.tangents_[i,:]),
                             np.linalg.norm(real_tangent + nsim_kNN.tangents_[i,:]))
-    f_tangent_error[ctr_j,ctr_k,ctr_kk,ctr_n,ctr_m,rep,:] = np.max(tan_errs)
+    f_tangent_error[i1,i2,i3,i4,:,i6,i7,rep] = np.max(tan_errs)
     # Computational time
     end = time.time()
-    comp_time[ctr_j,ctr_k,ctr_kk,ctr_n,ctr_m,rep,:] = end - start
+    comp_time[i1,i2,i3,i4,:,i6,i7,rep] = end - start
     print "N : {0}  D : {1}    R : {2}   sigma_eps : {3}    rep : {4}   Time : {5} s".format(n_samples, ambient_dim, noise, var_f, rep, end - start)
-    print "Tangential error: ", f_tangent_error[ctr_j,ctr_k,ctr_kk,ctr_n,ctr_m,rep,:]
-    print "Fval error (CV): ", f_f_error_CV[ctr_j,ctr_k,ctr_kk,ctr_n,ctr_m,rep,:]
-    print "Fval error (Test): ", f_f_error_test[ctr_j,ctr_k,ctr_kk,ctr_n,ctr_m,:,ctr_nn,rep]
+    print "Tangential error: ", f_tangent_error[i1,i2,i3,i4,:,i6,i7,rep]
+    print "Fval error (CV): ", f_f_error_CV[i1,i2,i3,i4,:,i6,i7,rep]
+    print "Fval error (Test): ", f_f_error_test[i1,i2,i3,i4,:,i6,i7,rep]
 
 if __name__ == "__main__":
     # Get number of jobs from sys.argv
@@ -214,8 +213,8 @@ if __name__ == "__main__":
         from scipy.stats import special_ortho_group
         rotations[D] = special_ortho_group.rvs(D)
 
-    repititions = 1
-    savestr_base = 'denoise_test1'
+    repititions = 20
+    savestr_base = 'helix_no_noise'
     filename_errors = '../img/' + savestr_base + '/errors'
 
     try:
@@ -229,13 +228,13 @@ if __name__ == "__main__":
         with open(filename_errors + '/log.txt', 'w') as file:
             file.write(json.dumps(run_for, indent=4)) # use `json.loads` to do the reverse
         tmp_folder = tempfile.mkdtemp()
-        dummy_for_shape = np.zeros((len(run_for['var_f']),
-                                    len(run_for['n_samples']),
+        dummy_for_shape = np.zeros((len(run_for['n_samples']),
                                       len(run_for['ambient_dim']),
                                       len(run_for['n_noise']),
                                       len(run_for['ball_radius']),
                                       len(run_for['n_neighbors']),
                                       len(run_for['n_levelsets']),
+                                      len(run_for['var_f']),
                                       repititions))
         try:
             # Create error containers
@@ -250,13 +249,13 @@ if __name__ == "__main__":
             random_state = np.random.get_state()
             # Run experiments in parallel
             Parallel(n_jobs=n_jobs)(delayed(run_example)(
-                                run_for['n_samples'][k],
-                                run_for['n_noise'][n],
-                                run_for['ambient_dim'][kk],
-                                run_for['var_f'][j],
-                                run_for['ball_radius'][m],
-                                run_for['n_levelsets'][nn],
+                                run_for['n_samples'][i1],
+                                run_for['ambient_dim'][i2],
+                                run_for['n_noise'][i3],
+                                run_for['ball_radius'][i4],
                                 run_for['n_neighbors'],
+                                run_for['n_levelsets'][i6],
+                                run_for['var_f'][i7],
                                 xlow,
                                 xhigh,
                                 randomPolynomialIncrements_for_parallel,
@@ -264,23 +263,23 @@ if __name__ == "__main__":
                                 f_f_error_CV,
                                 f_f_error_test,
                                 comp_time,
-                                rep, j, k, kk, n, m, nn,
-                                xlow_error = 2.0,
+                                rep, i1, i2, i3, i4, i6, i7,
+                                xlow_error = 0.0,
                                 xhigh_error = 3.0,
                                 levelset_modus = run_for['levelset_modus'],
                                 neighbor_modus = run_for['neighbor_modus'],
                                 CV_split = run_for['CV_split'],
                                 savestr_base = savestr_base + '/' + str(rep) + '/',
-                                apply_rotation = rotations[run_for['ambient_dim'][kk]],
+                                apply_rotation = rotations[run_for['ambient_dim'][i2]],
                                 args_f = (xlow, xhigh, fun_obj.get_bases(),
                                           fun_obj.get_coeffs()))
                                 for rep in range(repititions)
-                                for j in range(len(run_for['var_f']))
-                                for k in range(len(run_for['n_samples']))
-                                for kk in range(len(run_for['ambient_dim']))
-                                for n in range(len(run_for['n_noise']))
-                                for m in range(len(run_for['ball_radius']))
-                                for nn in range(len(run_for['n_levelsets'])))
+                                for i7 in range(len(run_for['var_f']))
+                                for i1 in range(len(run_for['n_samples']))
+                                for i2 in range(len(run_for['ambient_dim']))
+                                for i3 in range(len(run_for['n_noise']))
+                                for i4 in range(len(run_for['ball_radius']))
+                                for i6 in range(len(run_for['n_levelsets'])))
             # Dump memmaps to files
             f_tangent_error.dump(filename_errors + '/tangent_error.npy')
             f_f_error_CV.dump(filename_errors + '/f_error_CV.npy')
