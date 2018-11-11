@@ -35,11 +35,13 @@ def MSE(prediction, reference):
     return np.sum(np.linalg.norm(prediction - reference, axis = 0) ** 2)/ \
                 np.sum(np.linalg.norm(reference, axis = 0) ** 2)
 
+def RMSE(prediction, reference):
+    """ Root Mean squared error """
+    return np.sqrt(MSE(prediction, reference))
 
 def UAE(prediction, reference):
     """ Uniform absolute error max_i |v_i - hat v_i| """
-    return np.max(np.divide(np.linalg.norm(prediction - reference, axis = 0),
-                     np.linalg.norm(reference, axis = 0)))
+    return np.max(np.linalg.norm(prediction - reference, axis = 0))
 
 
 def run_example(n_samples,
@@ -119,9 +121,9 @@ def run_example(n_samples,
         fval_predict_CV = knn_reg.predict(points_CV.T)
         fval_predict_test = knn_reg.predict(points_test.T)
         end = time.time()
-        f_f_error_CV[ctr_j,ctr_k,ctr_kk,ctr_n,idx,rep] = UAE(np.reshape(fval_predict_CV, \
+        f_f_error_CV[ctr_j,ctr_k,ctr_kk,ctr_n,idx,rep] = RMSE(np.reshape(fval_predict_CV, \
                                                                         (1,-1)), np.reshape(fval_CV, (1,-1)))
-        f_f_error_test[ctr_j,ctr_k,ctr_kk,ctr_n,idx,rep] = UAE(np.reshape(fval_predict_test, \
+        f_f_error_test[ctr_j,ctr_k,ctr_kk,ctr_n,idx,rep] = RMSE(np.reshape(fval_predict_test, \
                                                                         (1,-1)), np.reshape(fval_test, (1,-1)))
         comp_time[ctr_j,ctr_k,ctr_kk,ctr_n,idx,rep] = end - start
         start = end
@@ -148,7 +150,7 @@ if __name__ == "__main__":
 
     # Parameters
     run_for = {
-        'n_samples' : [1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000],
+        'n_samples' : [1000, 2000, 4000, 8000, 16000, 32000],
         'n_noise' : [0.25],
         'ambient_dim' : [6, 12, 24],
         'var_f' : [0.0],
@@ -161,8 +163,8 @@ if __name__ == "__main__":
         from scipy.stats import special_ortho_group
         rotations[D] = special_ortho_group.rvs(D)
 
-    repititions = 1
-    savestr_base = 'normalKnn_without_noise'
+    repititions = 2
+    savestr_base = 'for_plotting_kNN'
     filename_errors = '../img/' + savestr_base + '/errors'
     try:
         f_tangent_error = np.load(filename_errors + '/tangent_error.npy')

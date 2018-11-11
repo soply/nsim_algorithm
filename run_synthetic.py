@@ -39,6 +39,9 @@ def MSE(prediction, reference):
     return np.sum(np.linalg.norm(prediction - reference, axis = 0) ** 2)/ \
                 np.sum(np.linalg.norm(reference, axis = 0) ** 2)
 
+def RMSE(prediction, reference):
+    """ Root Mean squared error """
+    return np.sqrt(MSE(prediction, reference))
 
 def UAE(prediction, reference):
     """ Uniform absolute error max_i |v_i - hat v_i| """
@@ -152,12 +155,12 @@ def run_example(n_samples,
     # Error Calculations
     # Function Error
     if isinstance(n_neighbors, (int,long)):
-        f_f_error_CV[i1,i2,i3,i4,0,i6,i7,rep] = UAE(np.reshape(fval_predict_CV, (1,-1))[0,idx_cv_error], np.reshape(fval_CV, (1,-1))[0,idx_cv_error])
-        f_f_error_test[i1,i2,i3,i4,0,i6,i7,rep] = UAE(np.reshape(fval_predict_test, (1,-1))[0,idx_test_error], np.reshape(fval_test, (1,-1))[0,idx_test_error])
+        f_f_error_CV[i1,i2,i3,i4,0,i6,i7,rep] = RMSE(np.reshape(fval_predict_CV, (1,-1))[0,idx_cv_error], np.reshape(fval_CV, (1,-1))[0,idx_cv_error])
+        f_f_error_test[i1,i2,i3,i4,0,i6,i7,rep] = RMSE(np.reshape(fval_predict_test, (1,-1))[0,idx_test_error], np.reshape(fval_test, (1,-1))[0,idx_test_error])
     else:
         for l, _ in enumerate(n_neighbors):
-            f_f_error_CV[i1,i2,i3,i4,l,i6,i7,rep] = UAE(np.reshape(fval_predict_CV[:,l], (1,-1))[0,idx_cv_error], np.reshape(fval_CV, (1,-1))[0,idx_cv_error])
-            f_f_error_test[i1,i2,i3,i4,l,i6,i7,rep] = UAE(np.reshape(fval_predict_test[:,l], (1,-1))[0,idx_test_error], np.reshape(fval_test, (1,-1))[0,idx_test_error])
+            f_f_error_CV[i1,i2,i3,i4,l,i6,i7,rep] = RMSE(np.reshape(fval_predict_CV[:,l], (1,-1))[0,idx_cv_error], np.reshape(fval_CV, (1,-1))[0,idx_cv_error])
+            f_f_error_test[i1,i2,i3,i4,l,i6,i7,rep] = RMSE(np.reshape(fval_predict_test[:,l], (1,-1))[0,idx_test_error], np.reshape(fval_test, (1,-1))[0,idx_test_error])
     # Tangent Error
     J =  len(set(nsim_kNN.labels_))
     tan_errs = np.zeros(J)
@@ -167,7 +170,8 @@ def run_example(n_samples,
             real_tangent = apply_rotation.dot(f_manifold.get_tangent(tmean))
             tan_errs[i] = np.minimum(np.linalg.norm(real_tangent - nsim_kNN.tangents_[i,:]),
                             np.linalg.norm(real_tangent + nsim_kNN.tangents_[i,:]))
-    f_tangent_error[i1,i2,i3,i4,:,i6,i7,rep] = np.max(tan_errs)
+    # Compute RMSE
+    f_tangent_error[i1,i2,i3,i4,:,i6,i7,rep] = np.sqrt(np.sum(np.square(tan_errs)))
     # Computational time
     end = time.time()
     comp_time[i1,i2,i3,i4,:,i6,i7,rep] = end - start
@@ -195,7 +199,7 @@ if __name__ == "__main__":
     # fun_obj.plot(white_noise_var=1e-4, n = 1000)
     # Parameters
     run_for = {
-        'n_samples' : [1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000],
+        'n_samples' : [1000, 2000, 4000, 8000, 16000, 32000],
         'n_noise' : [0.25],
         'ambient_dim' : [6, 12, 24],
         'var_f' : [0.0],
@@ -213,8 +217,8 @@ if __name__ == "__main__":
         from scipy.stats import special_ortho_group
         rotations[D] = special_ortho_group.rvs(D)
 
-    repititions = 20
-    savestr_base = 'helix_no_noise'
+    repititions = 3
+    savestr_base = 'for_plotting'
     filename_errors = '../img/' + savestr_base + '/errors'
 
     try:
