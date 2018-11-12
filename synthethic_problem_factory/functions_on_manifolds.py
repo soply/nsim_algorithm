@@ -1,14 +1,14 @@
 # coding: utf8
 import numpy as np
 
-import matplotlib
-import matplotlib.pyplot as plt
-
-font = {'family' : 'normal',
-        'weight' : 'bold',
-        'size'   : 18}
-
-matplotlib.rc('font', **font)
+# import matplotlib
+# import matplotlib.pyplot as plt
+#
+# font = {'family' : 'normal',
+#         'weight' : 'bold',
+#         'size'   : 18}
+#
+# matplotlib.rc('font', **font)
 
 class RandomPolynomialIncrements(object):
     """ Use with area of definition > 0 to avoid non-monotonicity. """
@@ -63,20 +63,20 @@ class RandomPolynomialIncrements(object):
             return np.polyval(self.coeffs_[:,idx], x - 0.5 * (self.bases_[idx] + self.bases_[idx-1]))
 
 
-    def plot(self, white_noise_var = 0.0, n = 100):
-        x = np.linspace(self.tlower_, self.tupper_, n)
-        fval = np.zeros(x.shape)
-        for i in range(len(x)):
-            fval[i] = self.eval(x[i])
-        if white_noise_var > 0.0:
-            fval = fval + np.random.normal(scale=np.sqrt(white_noise_var), size = n)
-        plt.figure()
-        plt.xlabel(r'Intrinsic curve parameter $t$')
-        plt.ylabel(r'$g(t)$')
-        #t.title('Random polynomial increment function')
-        # plt.plot(self.bases_, np.zeros(len(self.bases_)), 'o')
-        plt.plot(x, fval, linewidth=3.0)
-        plt.show()
+    # def plot(self, white_noise_var = 0.0, n = 100):
+    #     x = np.linspace(self.tlower_, self.tupper_, n)
+    #     fval = np.zeros(x.shape)
+    #     for i in range(len(x)):
+    #         fval[i] = self.eval(x[i])
+    #     if white_noise_var > 0.0:
+    #         fval = fval + np.random.normal(scale=np.sqrt(white_noise_var), size = n)
+    #     plt.figure()
+    #     plt.xlabel(r'Intrinsic curve parameter $t$')
+    #     plt.ylabel(r'$g(t)$')
+    #     #t.title('Random polynomial increment function')
+    #     # plt.plot(self.bases_, np.zeros(len(self.bases_)), 'o')
+    #     plt.plot(x, fval, linewidth=3.0)
+    #     plt.show()
 
 
 def randomPolynomialIncrements_for_parallel(x, tlower, tupper, bases, coeffs):

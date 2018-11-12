@@ -57,7 +57,6 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
         order = np.argsort(y)
         self.X_ = X[order,:]
         self.Y_ = y[order]
-        assert (self.n_levelsets <= self.N), "n_levelsets must be below number of samples: {0} < {1}".format(self.n_inverse, self.N)
         # Create level set partitioning
         if self.split_by == 'stateq':
             self._construct_dyadic_partition() # Sets self.labels_
@@ -65,11 +64,11 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
             self._construct_statistically_equivalent_blocks() # Sets self.labels_
         # Check samples per level set
         n_samples_per_levelset = np.bincount(self.labels_).astype('int')
-        if any(n_samples_per_levelset < 2 * self.D) and self.verbose_:
+        if any(n_samples_per_levelset <= self.D):
             critical_LVsets = np.where(n_samples_per_levelset < 2 * self.D)[0]
-            print "Warning: Level sets {0} have only {1} < {2} samples.".format(
-                        critical_LVsets, n_samples_per_levelset[critical_LVsets],
-                        2 * self.D)
+            raise RuntimeError("Level sets {0} have only {1} <= {2} samples. Fitting not possible.".format(
+                critical_LVsets, n_samples_per_levelset[critical_LVsets], self.D
+            ))
         # Find smallest singular vectors
         self._calculate_tangents() # sets self.tangents_
         self.PX_ = np.zeros(self.N) # Storing projections of training points
