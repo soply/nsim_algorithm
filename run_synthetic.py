@@ -63,7 +63,7 @@ def run_example(n_samples,
                 f_f_error_CV,
                 f_f_error_test,
                 comp_time,
-                rep, i1, i2, i3, i4, i6, i7, # Indices to write into
+                rep, i1, i2, i3, i4, i7, # Indices to write into
                 xlow_error = None,
                 xhigh_error = None,
                 levelset_modus = 'number',
@@ -132,59 +132,67 @@ def run_example(n_samples,
         points = apply_rotation.dot(points)
         points_CV = apply_rotation.dot(points_CV)
         points_test = apply_rotation.dot(points_test)
-    # Calculate number of level sets
-    if levelset_modus == 'factor':
-        n_levelsets_mod = np.floor(float(n_samples_train)/float(ambient_dim * n_levelsets)).astype('int')
-    else:
-        n_levelsets_mod = n_levelsets
-    print "n_levelsets = {0}".format(n_levelsets)
     # Turn nNeighbors into number of samples
     if neighbor_modus == 'factor':
         nNei = np.ceil(np.array(n_neighbors) * np.power(n_samples, 2.0/3.0)).astype('int')
     else:
         nNei = n_neighbors
-    start = time.time()
-    nsim_kNN = NSIM_Estimator(n_neighbors = nNei,
-                            n_levelsets = n_levelsets_mod,
-                            ball_radius = ball_radius,
-                            split_by = 'dyadic')
-    try:
-        nsim_kNN = nsim_kNN.fit(points.T, fval)
-        fval_predict_CV = nsim_kNN.predict(points_CV.T)
-        fval_predict_test = nsim_kNN.predict(points_test.T)
-        end = time.time()
-        # Error Calculations
-        # Function Error
-        if isinstance(n_neighbors, (int,long)):
-            f_f_error_CV[i1,i2,i3,i4,0,i6,i7,rep] = RMSE(np.reshape(fval_predict_CV, (1,-1))[0,idx_cv_error], np.reshape(fval_CV, (1,-1))[0,idx_cv_error])
-            f_f_error_test[i1,i2,i3,i4,0,i6,i7,rep] = RMSE(np.reshape(fval_predict_test, (1,-1))[0,idx_test_error], np.reshape(fval_test, (1,-1))[0,idx_test_error])
+    # We loop over level sets here
+    for i6, n_current_levelsets in enumerate(n_levelsets):
+        # Calculate number of level sets
+        if levelset_modus == 'factor':
+            n_levelsets_mod = np.floor(float(n_samples_train)/float(ambient_dim * n_levelsets[i6])).astype('int')
         else:
-            for l, _ in enumerate(n_neighbors):
-                f_f_error_CV[i1,i2,i3,i4,l,i6,i7,rep] = RMSE(np.reshape(fval_predict_CV[:,l], (1,-1))[0,idx_cv_error], np.reshape(fval_CV, (1,-1))[0,idx_cv_error])
-                f_f_error_test[i1,i2,i3,i4,l,i6,i7,rep] = RMSE(np.reshape(fval_predict_test[:,l], (1,-1))[0,idx_test_error], np.reshape(fval_test, (1,-1))[0,idx_test_error])
-        # Tangent Error
-        J =  len(set(nsim_kNN.labels_))
-        tan_errs = np.zeros(J)
-        for i in range(J):
-            if len(np.intersect1d(np.where(nsim_kNN.labels_ == i), idx_train_error)) > 0:
-                tmean = np.mean(pdisc[nsim_kNN.labels_ == i])
-                real_tangent = apply_rotation.dot(f_manifold.get_tangent(tmean))
-                tan_errs[i] = np.minimum(np.linalg.norm(real_tangent - nsim_kNN.tangents_[i,:]),
-                                np.linalg.norm(real_tangent + nsim_kNN.tangents_[i,:]))
-        # Compute RMSE
-        f_tangent_error[i1,i2,i3,i4,:,i6,i7,rep] = np.sqrt(np.mean(np.square(tan_errs)))
-    except RuntimeError as e:
-        print e
-        f_f_error_CV[i1,i2,i3,i4,:,i6,i7,rep] = 1e16
-        f_f_error_test[i1,i2,i3,i4,:,i6,i7,rep] = 1e16
-        f_tangent_error[i1,i2,i3,i4,:,i6,i7,rep] = 1e16
-    # Computational time
-    end = time.time()
-    comp_time[i1,i2,i3,i4,:,i6,i7,rep] = end - start
-    print "N : {0}  D : {1}    R : {2}   sigma_eps : {3}    rep : {4}   Time : {5} s".format(n_samples, ambient_dim, noise, var_f, rep, end - start)
-    print "Tangential error: ", f_tangent_error[i1,i2,i3,i4,:,i6,i7,rep]
-    print "Fval error (CV): ", f_f_error_CV[i1,i2,i3,i4,:,i6,i7,rep]
-    print "Fval error (Test): ", f_f_error_test[i1,i2,i3,i4,:,i6,i7,rep]
+            n_levelsets_mod = n_levelsets[i6]
+        print "n_levelsets = {0}".format(n_levelsets[i6])
+        start = time.time()
+        nsim_kNN = NSIM_Estimator(n_neighbors = nNei,
+                                n_levelsets = n_levelsets_mod,
+                                ball_radius = ball_radius,
+                                split_by = 'dyadic')
+        try:
+            nsim_kNN = nsim_kNN.fit(points.T, fval)
+            fval_predict_CV = nsim_kNN.predict(points_CV.T)
+            fval_predict_test = nsim_kNN.predict(points_test.T)
+            end = time.time()
+            # Error Calculations
+            # Function Error
+            if isinstance(n_neighbors, (int,long)):
+                f_f_error_CV[i1,i2,i3,i4,0,i6,i7,rep] = RMSE(np.reshape(fval_predict_CV, (1,-1))[0,idx_cv_error], np.reshape(fval_CV, (1,-1))[0,idx_cv_error])
+                f_f_error_test[i1,i2,i3,i4,0,i6,i7,rep] = RMSE(np.reshape(fval_predict_test, (1,-1))[0,idx_test_error], np.reshape(fval_test, (1,-1))[0,idx_test_error])
+            else:
+                for l, _ in enumerate(n_neighbors):
+                    f_f_error_CV[i1,i2,i3,i4,l,i6,i7,rep] = RMSE(np.reshape(fval_predict_CV[:,l], (1,-1))[0,idx_cv_error], np.reshape(fval_CV, (1,-1))[0,idx_cv_error])
+                    f_f_error_test[i1,i2,i3,i4,l,i6,i7,rep] = RMSE(np.reshape(fval_predict_test[:,l], (1,-1))[0,idx_test_error], np.reshape(fval_test, (1,-1))[0,idx_test_error])
+            # Tangent Error
+            J =  len(set(nsim_kNN.labels_))
+            tan_errs = np.zeros(J)
+            for i in range(J):
+                if len(np.intersect1d(np.where(nsim_kNN.labels_ == i), idx_train_error)) > 0:
+                    tmean = np.mean(pdisc[nsim_kNN.labels_ == i])
+                    real_tangent = apply_rotation.dot(f_manifold.get_tangent(tmean))
+                    tan_errs[i] = np.minimum(np.linalg.norm(real_tangent - nsim_kNN.tangents_[i,:]),
+                                    np.linalg.norm(real_tangent + nsim_kNN.tangents_[i,:]))
+            # Compute RMSE
+            f_tangent_error[i1,i2,i3,i4,:,i6,i7,rep] = np.sqrt(np.mean(np.square(tan_errs)))
+            if i6 > 0 and all(f_tangent_error[i1,i2,i3,i4,:,i6,i7,rep] > f_tangent_error[i1,i2,i3,i4,:,i6 - 1,i7,rep]):
+                # If the error starts increasing again, we prematurily because it will unlikely get better
+                f_tangent_error[i1,i2,i3,i4,:,i6+1:,i7,rep] = 1e16
+                f_f_error_CV[i1,i2,i3,i4,:,i6+1:,i7,rep] = 1e16
+                f_f_error_test[i1,i2,i3,i4,:,i6+1:,i7,rep] = 1e16
+                break
+        except RuntimeError as e:
+            print e
+            f_f_error_CV[i1,i2,i3,i4,:,i6,i7,rep] = 1e16
+            f_f_error_test[i1,i2,i3,i4,:,i6,i7,rep] = 1e16
+            f_tangent_error[i1,i2,i3,i4,:,i6,i7,rep] = 1e16
+        # Computational time
+        end = time.time()
+        comp_time[i1,i2,i3,i4,:,i6,i7,rep] = end - start
+        print "N : {0}  D : {1}    R : {2}   sigma_eps : {3}    rep : {4}   Time : {5} s".format(n_samples, ambient_dim, noise, var_f, rep, end - start)
+        print "Tangential error: ", f_tangent_error[i1,i2,i3,i4,:,:,i7,rep]
+        print "Fval error (CV): ", f_f_error_CV[i1,i2,i3,i4,:,:,i7,rep]
+        print "Fval error (Test): ", f_f_error_test[i1,i2,i3,i4,:,:,i7,rep]
 
 if __name__ == "__main__":
     # Get number of jobs from sys.argv
@@ -205,16 +213,16 @@ if __name__ == "__main__":
     # fun_obj.plot(white_noise_var=1e-4, n = 1000)
     # Parameters
     run_for = {
-        'n_samples' : [1000, 2000, 4000],
+        'n_samples' : [1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000],
         'n_noise' : [0.25],
         'ambient_dim' : [12],
-        'var_f' : [0.0],
+        'var_f' : [(avg_grad * 0.02) ** 2, (avg_grad * 0.04) ** 2, (avg_grad * 0.08) ** 2],
         'ball_radius' : [0.5],
-        'n_levelsets' : [2 ** j for j in range(11)],
-        'n_neighbors' : [1],
+        'n_levelsets' : [2 ** j for j in range(12)],
+        'n_neighbors' : [0.01, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.25, 0.3, 0.35],
         'levelset_modus' : 'number',
-        'neighbor_modus' : 'number',
-        'CV_split' : 0.01,
+        'neighbor_modus' : 'factor',
+        'CV_split' : 0.1,
     }
 
     # Sample rotations for each dimension
@@ -223,8 +231,8 @@ if __name__ == "__main__":
         from scipy.stats import special_ortho_group
         rotations[D] = special_ortho_group.rvs(D)
 
-    repititions = 3
-    savestr_base = 'test'
+    repititions = 20
+    savestr_base = 'noisy_helix'
     filename_errors = '../img/' + savestr_base + '/errors'
 
     try:
@@ -264,7 +272,7 @@ if __name__ == "__main__":
                                 run_for['n_noise'][i3],
                                 run_for['ball_radius'][i4],
                                 run_for['n_neighbors'],
-                                run_for['n_levelsets'][i6],
+                                run_for['n_levelsets'],
                                 run_for['var_f'][i7],
                                 xlow,
                                 xhigh,
@@ -273,7 +281,7 @@ if __name__ == "__main__":
                                 f_f_error_CV,
                                 f_f_error_test,
                                 comp_time,
-                                rep, i1, i2, i3, i4, i6, i7,
+                                rep, i1, i2, i3, i4, i7,
                                 xlow_error = 0.0,
                                 xhigh_error = 3.0 * np.pi,
                                 levelset_modus = run_for['levelset_modus'],
@@ -288,8 +296,7 @@ if __name__ == "__main__":
                                 for i1 in range(len(run_for['n_samples']))
                                 for i2 in range(len(run_for['ambient_dim']))
                                 for i3 in range(len(run_for['n_noise']))
-                                for i4 in range(len(run_for['ball_radius']))
-                                for i6 in range(len(run_for['n_levelsets'])))
+                                for i4 in range(len(run_for['ball_radius'])))
             # Dump memmaps to files
             f_tangent_error.dump(filename_errors + '/tangent_error.npy')
             f_f_error_CV.dump(filename_errors + '/f_error_CV.npy')
