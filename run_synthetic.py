@@ -175,12 +175,6 @@ def run_example(n_samples,
                                     np.linalg.norm(real_tangent + nsim_kNN.tangents_[i,:]))
             # Compute RMSE
             f_tangent_error[i1,i2,i3,i4,:,i6,i7,rep] = np.sqrt(np.mean(np.square(tan_errs)))
-            if i6 > 0 and all(f_tangent_error[i1,i2,i3,i4,:,i6,i7,rep] > f_tangent_error[i1,i2,i3,i4,:,i6 - 1,i7,rep]):
-                # If the error starts increasing again, we prematurily because it will unlikely get better
-                f_tangent_error[i1,i2,i3,i4,:,i6+1:,i7,rep] = 1e16
-                f_f_error_CV[i1,i2,i3,i4,:,i6+1:,i7,rep] = 1e16
-                f_f_error_test[i1,i2,i3,i4,:,i6+1:,i7,rep] = 1e16
-                break
         except RuntimeError as e:
             print e
             f_f_error_CV[i1,i2,i3,i4,:,i6,i7,rep] = 1e16
@@ -189,10 +183,10 @@ def run_example(n_samples,
         # Computational time
         end = time.time()
         comp_time[i1,i2,i3,i4,:,i6,i7,rep] = end - start
-        print "N : {0}  D : {1}    R : {2}   sigma_eps : {3}    rep : {4}   Time : {5} s".format(n_samples, ambient_dim, noise, var_f, rep, end - start)
-        print "Tangential error: ", f_tangent_error[i1,i2,i3,i4,:,:,i7,rep]
-        print "Fval error (CV): ", f_f_error_CV[i1,i2,i3,i4,:,:,i7,rep]
-        print "Fval error (Test): ", f_f_error_test[i1,i2,i3,i4,:,:,i7,rep]
+    print "N : {0}  D : {1}    R : {2}   sigma_eps : {3}    rep : {4}   Time : {5} s".format(n_samples, ambient_dim, noise, var_f, rep, end - start)
+    print "Tangential error: ", f_tangent_error[i1,i2,i3,i4,:,:,i7,rep]
+    print "Fval error (CV): ", f_f_error_CV[i1,i2,i3,i4,:,:,i7,rep]
+    print "Fval error (Test): ", f_f_error_test[i1,i2,i3,i4,:,:,i7,rep]
 
 if __name__ == "__main__":
     # Get number of jobs from sys.argv
@@ -210,10 +204,10 @@ if __name__ == "__main__":
     # Calculate variance
     flower, fupper = fun_obj.eval(xlow), fun_obj.eval(xhigh)
     avg_grad = (fupper - flower)/(xhigh - xlow)
-    # fun_obj.plot(white_noise_var=1e-4, n = 1000)
+    fun_obj.plot(white_noise_var=(avg_grad * 0.08) ** 2, n = 1000)
     # Parameters
     run_for = {
-        'n_samples' : [1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000],
+        'n_samples' : [1000, 2000, 4000, 8000],#, 16000, 32000, 64000, 128000, 256000, 512000],
         'n_noise' : [0.25],
         'ambient_dim' : [12],
         'var_f' : [(avg_grad * 0.02) ** 2, (avg_grad * 0.04) ** 2, (avg_grad * 0.08) ** 2],
