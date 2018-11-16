@@ -59,16 +59,17 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
         self.Y_ = y[order]
         # Create level set partitioning
         if self.split_by == 'stateq':
-            self._construct_dyadic_partition() # Sets self.labels_
-        elif self.split_by == 'dyadic':
             self._construct_statistically_equivalent_blocks() # Sets self.labels_
+        elif self.split_by == 'dyadic':
+            self._construct_dyadic_partition() # Sets self.labels_
         # Check samples per level set
         n_samples_per_levelset = np.bincount(self.labels_).astype('int')
         if any(n_samples_per_levelset <= self.D):
             critical_LVsets = np.where(n_samples_per_levelset < 2 * self.D)[0]
-            raise RuntimeError("Level sets {0} have only {1} <= {2} samples. Fitting not possible.".format(
-                critical_LVsets, n_samples_per_levelset[critical_LVsets], self.D
-            ))
+            raise RuntimeError("Level sets have only few samples. Fitting not possible.")
+            # raise RuntimeError("Level sets {0} have only {1} <= {2} samples. Fitting not possible.".format(
+            #     critical_LVsets, n_samples_per_levelset[critical_LVsets], self.D
+            # ))
         # Find smallest singular vectors
         self._calculate_tangents() # sets self.tangents_
         self.PX_ = np.zeros(self.N) # Storing projections of training points
@@ -117,7 +118,7 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
         # Correct for upper and lower edge to include all samples
         edges[0] -= 1e-10
         edges[-1] += 1e-10
-        self.labels_ = np.digitize(Y, edges) - 1
+        self.labels_ = np.digitize(self.Y_, edges) - 1
 
 
     def _construct_statistically_equivalent_blocks(self):
@@ -205,3 +206,7 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
         if any(np.array(min_idx) < np.array(tmp_n_neighbors)):
             print "Could use only {0} samples for some predictions".format(min_idx)
         return prediction
+
+    def measure_almost_linearity(self):
+        """ Returns the smallest absolute dot product between any two tangents. """
+        return np.min(np.abs(self.tangents_.dot(self.tangents.T)))

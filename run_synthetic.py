@@ -146,6 +146,9 @@ def run_example(n_samples,
             n_levelsets_mod = n_levelsets[i6]
         print "n_levelsets = {0}".format(n_levelsets[i6])
         start = time.time()
+        import cProfile
+        cp = cProfile.Profile()
+        cp.enable()
         nsim_kNN = NSIM_Estimator(n_neighbors = nNei,
                                 n_levelsets = n_levelsets_mod,
                                 ball_radius = ball_radius,
@@ -183,10 +186,12 @@ def run_example(n_samples,
         # Computational time
         end = time.time()
         comp_time[i1,i2,i3,i4,:,i6,i7,rep] = end - start
-    print "N : {0}  D : {1}    R : {2}   sigma_eps : {3}    rep : {4}   Time : {5} s".format(n_samples, ambient_dim, noise, var_f, rep, end - start)
+        print "N : {0}  D : {1}    R : {2}   sigma_eps : {3}    rep : {4}   Time : {5} s".format(n_samples, ambient_dim, noise, var_f, rep, end - start)
+        cp.disable()
+        cp.print_stats()
     print "Tangential error: ", f_tangent_error[i1,i2,i3,i4,:,:,i7,rep]
-    print "Fval error (CV): ", f_f_error_CV[i1,i2,i3,i4,:,:,i7,rep]
-    print "Fval error (Test): ", f_f_error_test[i1,i2,i3,i4,:,:,i7,rep]
+    # print "Fval error (CV): ", f_f_error_CV[i1,i2,i3,i4,:,:,i7,rep]
+    # print "Fval error (Test): ", f_f_error_test[i1,i2,i3,i4,:,:,i7,rep]
 
 if __name__ == "__main__":
     # Get number of jobs from sys.argv
@@ -204,15 +209,15 @@ if __name__ == "__main__":
     # Calculate variance
     flower, fupper = fun_obj.eval(xlow), fun_obj.eval(xhigh)
     avg_grad = (fupper - flower)/(xhigh - xlow)
-    fun_obj.plot(white_noise_var=(avg_grad * 0.08) ** 2, n = 1000)
+    # fun_obj.plot(white_noise_var=(avg_grad * 0.4) ** 2, n = 1000)
     # Parameters
     run_for = {
-        'n_samples' : [1000, 2000, 4000, 8000],#, 16000, 32000, 64000, 128000, 256000, 512000],
+        'n_samples' : [16000],#, 16000, 32000, 64000, 128000, 256000, 512000],
         'n_noise' : [0.25],
-        'ambient_dim' : [12],
-        'var_f' : [(avg_grad * 0.02) ** 2, (avg_grad * 0.04) ** 2, (avg_grad * 0.08) ** 2],
+        'ambient_dim' : [6],
+        'var_f' : [(avg_grad * 0.02) ** 2],#, (avg_grad * 0.04) ** 2, (avg_grad * 0.08) ** 2],
         'ball_radius' : [0.5],
-        'n_levelsets' : [2 ** j for j in range(12)],
+        'n_levelsets' : [2 ** j for j in range(11)],
         'n_neighbors' : [0.01, 0.02, 0.04, 0.06, 0.08, 0.1, 0.12, 0.14, 0.16, 0.18, 0.2, 0.25, 0.3, 0.35],
         'levelset_modus' : 'number',
         'neighbor_modus' : 'factor',
@@ -225,7 +230,7 @@ if __name__ == "__main__":
         from scipy.stats import special_ortho_group
         rotations[D] = special_ortho_group.rvs(D)
 
-    repititions = 20
+    repititions = 1
     savestr_base = 'noisy_helix'
     filename_errors = '../img/' + savestr_base + '/errors'
 
