@@ -17,42 +17,58 @@ def sample_1D_fromClass(a, b, manifold, f_on_manifold,
     gamma(t)).
 
     Parameters
-    -------------------------------------------------------------
+    -----------
     a : float
         Start point for t domain
+
     b : float
         End point for t domain
+
     f_on_manifold: python function
         1D link function that is evaluated for all t points.
+
     n_samples : integer
         Number of samples
+
     noise_level : float
         Bound for the norm of U. If tube = 'linfinity', this is the maximum size
         of 1 coordinate. If tube = 'l2', this is the maximum distance from gamma(t).
+
     tube : string
         Type of noise F(gamma(t))U. Can be 'linf' or 'l2'.
+
     var_f : float
         Variance of Gaussian noise added to the function values
+
     return_original: Boolean
         If true, returns also the points sampled exactly on the curve.
+
     args_f : Additional arguments for the function f_on_manifold if necessary.
 
 
-    Returns problem data for a synthethic problem:
+    Returns problem data:
+    ---------------------
     s_disc: np.array of size N
         Samples t
+
     points : np.array of size D x N
         X samples
+
     points_original : np.array of size D x N
         Returns [t, U] for each sample (only if reurn_original is true)
+
     normalspaces : np.array of size D x D-1 x N
         Orthonormal basis for the normal space of the curve at each sample gamma(t)
+
     fval : np.array of size N
         Function values
+
     fval_clean : np.array of size N
         Function values without additive noise
+
     tangentspaces : np.array of size D x 1 x N
         True tangent of the curve at each sample gamma(t)
+        
     basepoints : np.array of size D x N
         gamma(t) samples (only if reurn_original is true)
     """

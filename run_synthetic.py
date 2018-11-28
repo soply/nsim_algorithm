@@ -206,7 +206,7 @@ if __name__ == "__main__":
         rotations[D] = special_ortho_group.rvs(D)
 
     repititions = 5
-    savestr_base = 'testabc232'
+    savestr_base = 'testabc2232'
     filename_errors = '../img/' + savestr_base + '/errors'
 
     try:

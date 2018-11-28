@@ -9,11 +9,24 @@ from sklearn.metrics.pairwise import euclidean_distances
 
 """
 Main file:
+
 Implementation of the NSIM Estimator.
 """
 
 class NSIM_Estimator(BaseEstimator, RegressorMixin):
     """
+    The NSIM estimator takes a data set (X,Y) and partitions it based on the
+    response Y into several subsets. In each subset, a linear regression problem is
+    solved to obtain a vector that is most relevant for the function prediction
+    (normalized slope vector of the linear regression problem). Prediction is performed
+    using kNN based on the distance
+
+        Delta(X, X_i) = |<a_i, X - X_i>|,
+
+    where X_i is a training point, a_i the corresponding relevant vector, and
+    X is a new sample. It is also possible to intersect the data set with a
+    Euclidean ball of a certain size to mix ambient proximity with intrinsic
+    proximity.
     """
 
     def __init__(self,
@@ -23,11 +36,15 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
                  split_by = 'dyadic',
                  verbose_ = False):
         """
+        Parameters
+        -------------------------------------------------------------------------
         n_levelsets: int
             Number of level sets to create
 
         n_neighbors: int
-            Number of neighbors used in the kNN regression step.
+            Number of neighbors used in the kNN regression step. This can be an
+            array if multiple numbers of neighbors should be used. Then the output
+            of predicted returns the prediction for each choice.
 
         split_by : string
             Type of splitting that is used. Possibilities:
@@ -37,7 +54,7 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
                     equivalently large intervals.
 
         verbose : bool
-            Amount of print outs
+            Print outs yes or no
         """
         # Set attributes of object to the same name as given in the argument
         # list.
@@ -49,6 +66,16 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
 
     def fit(self, X, y=None):
         """
+        Fit the NSIM estimator. Creates partition of level sets and learns tangents
+        for each level set.
+
+        Parameters
+        -------------------------------------------------------------------------
+        X : np.array of size (N, D)
+            Features X
+
+        y : np.array of size(N)
+            Output
         """
         self.N, self.D = X.shape
         # Sort samples according to Y
@@ -69,7 +96,6 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
             #     critical_LVsets, n_samples_per_levelset[critical_LVsets], self.D
             # ))
         # Find smallest singular vectors
-        import pdb; pdb.set_trace()
         self._calculate_tangents() # sets self.tangents_
         self.PX_ = np.zeros(self.N) # Storing projections of training points
         for i in range(self.n_levelsets):
@@ -77,6 +103,19 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
         return self
 
     def predict(self, X, y=None):
+        """
+        Predicts function values for new points X
+
+        Parameters
+        -------------------------------------------------------------------------
+        X : np.array of size (N, D) or (D)
+            Features X
+
+        Returns
+        -------------------------------------------------------------------------
+        np.array of size (N) if self.n_neighbors is an integer, and of size
+                         (N, len(n_neighbors)) if n_neighbors is an array.
+        """
         try:
             getattr(self, "X_")
             getattr(self, "Y_")
@@ -96,22 +135,15 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
     def _construct_dyadic_partition(self):
         """
         Partitions given data (X,Y) based on level set partitioning on the Y-values.
-        To split the Y values, we create n_splits disjoint intervals spanning the
-        range of Y and having equivalent width. Afterwards, we assign each sample
+        To split the Y values, we create self.n_levelsets disjoint intervals spanning the
+        range of Y and having equal width. Afterwards, we assign each sample
         based on its Y value to one of the intervals.
 
-        Parameters
-        -------------
 
-
-        Returns
+        Actions
         ------------
-        labels: np.array (size: n_samples) with ints
-            Contains labels of each sample
-
-        edges: np.array (size n_splits + 1) with floats
-            Contains the Y-values at which we separate the data.
-
+        Sets self.labels_ as an np.array of size (N) that indicates to which level set
+        each sample belongs.
         """
         hist, edges = np.histogram(self.Y_, bins = self.n_levelsets)
         # Correct for upper and lower edge to include all samples
@@ -121,21 +153,16 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
 
 
     def _construct_statistically_equivalent_blocks(self):
-        """ Splits the given data (X,Y) into statistically equivalent blocks
+        """
+        Partitions given data (X,Y) into statistically equivalent blocks
         (i.e. #points of two blocks differs at most by 1) based on the order
-        of Y. Returns 1 vector with labels from 0 to n_splits - 1.
-
-        Parameters
-        -------------
+        of Y.
 
 
-        Returns
+        Actions
         ------------
-        labels: np.array (size: n_samples) with ints
-            Contains labels of each sample
-
-        edges: np.array (size n_splits + 1) with floats
-            Contains the Y-values at which we separate the data.
+        Sets self.labels_ as an np.array of size (N) that indicates to which level set
+        each sample belongs.
         """
         # Assuming ordered Y here
         pieces = np.array_split(np.arange(self.N), self.n_levelsets)
@@ -146,6 +173,14 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
 
     def _calculate_tangents(self):
     	"""
+        Calculate the tangents for each level set by solving the corresponding
+        linear regression problem, and taking the normalized slope vector
+        as the tangent approximation.
+
+        Actions
+        ------------
+        Sets self.tangents_ as an np.array of size (self.n_levelsets, D) such that
+        the i-th row stores the tangent of the i-th level set.
     	"""
     	self.tangents_ = np.zeros((self.n_levelsets, self.D))
     	for i in range(self.n_levelsets):
@@ -158,8 +193,19 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
 
     def _predict(self, X_predict):
         """
-        Can handle both cases where X_predict is a single sample (vector of shape D),
-        or an input matrix.
+        Auxiliary function to do the kNN prediction based on an approximated
+        geodesic metric, while possibly intersecting each new sample with
+        a Euclidean ball size self.ball_radius first.
+
+        Parameters
+        ------------
+        X_predict: np.array of size (D) or of size (N, D)
+            Test points at which a prediction is done.
+
+        Returns
+        -------------
+        An np.array of size (N, len(self.n_neighbors)) containing the prediction
+        for the N-th points with all desired choices of neighbors in the N-th row.
         """
         # Handle only case where n_neighbors is a list here
         if isinstance(self.n_neighbors, (int,long)):
