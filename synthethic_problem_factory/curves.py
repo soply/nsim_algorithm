@@ -1,4 +1,9 @@
 # coding: utf8
+"""
+Implementation of some examplary curves. Identity_kD corresponds to a SIM model,
+the rest are actual curves with nonzero curvature. Circle_Segment_Builder can
+be used to build a curve as a sequence of quarter circles.
+"""
 import numpy as np
 
 """ General utilities """

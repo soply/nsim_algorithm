@@ -4,8 +4,9 @@ import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
 
-""" Methods to visualise stuff, such as a scattered point cloud, a manifold
-function or learned normal spaces and centers. """
+"""
+Some auxiliary methods for plotting, if needed.
+"""
 
 def handle_2D_plot():
     fig = plt.figure()

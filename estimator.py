@@ -7,11 +7,9 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.covariance import empirical_covariance
 from sklearn.metrics.pairwise import euclidean_distances
 
-
 """
-NSIM estimator where we partition the data into several level sets, and then
-learn the geometry in each of the level sets. The number of level sets is
-provided as a parameter.
+Main file:
+Implementation of the NSIM Estimator.
 """
 
 class NSIM_Estimator(BaseEstimator, RegressorMixin):
@@ -71,6 +69,7 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
             #     critical_LVsets, n_samples_per_levelset[critical_LVsets], self.D
             # ))
         # Find smallest singular vectors
+        import pdb; pdb.set_trace()
         self._calculate_tangents() # sets self.tangents_
         self.PX_ = np.zeros(self.N) # Storing projections of training points
         for i in range(self.n_levelsets):

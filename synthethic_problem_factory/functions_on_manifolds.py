@@ -1,18 +1,27 @@
 # coding: utf8
+"""
+A collection of functions used to test the estimator. Except random polynomial increments,
+the functions are basic.
+"""
 import numpy as np
 
-# import matplotlib
-# import matplotlib.pyplot as plt
-#
-# font = {'family' : 'normal',
-#         'weight' : 'bold',
-#         'size'   : 18}
-#
-# matplotlib.rc('font', **font)
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import matplotlib.ticker as ticker
+
+import matplotlib as mpl
+mpl.rcParams['lines.linewidth'] = 2.2
+params = {'legend.fontsize': 'small',
+         'axes.labelsize': 'x-large',
+         'axes.titlesize':'x-large',
+         'xtick.labelsize':'x-large',
+         'ytick.labelsize':'x-large',
+         'lines.markersize' : 7}
+mpl.rcParams.update(params)
 
 class RandomPolynomialIncrements(object):
     """ Use with area of definition > 0 to avoid non-monotonicity. """
-
     def __init__(self, tlower, tupper, deg, n_increments = 10,
                  coefficient_bound = [1.0, 2.0]):
         self.tlower_ = tlower
@@ -63,20 +72,19 @@ class RandomPolynomialIncrements(object):
             return np.polyval(self.coeffs_[:,idx], x - 0.5 * (self.bases_[idx] + self.bases_[idx-1]))
 
 
-    # def plot(self, white_noise_var = 0.0, n = 100):
-    #     x = np.linspace(self.tlower_, self.tupper_, n)
-    #     fval = np.zeros(x.shape)
-    #     for i in range(len(x)):
-    #         fval[i] = self.eval(x[i])
-    #     if white_noise_var > 0.0:
-    #         fval = fval + np.random.normal(scale=np.sqrt(white_noise_var), size = n)
-    #     plt.figure()
-    #     plt.xlabel(r'Intrinsic curve parameter $t$')
-    #     plt.ylabel(r'$g(t)$')
-    #     #t.title('Random polynomial increment function')
-    #     # plt.plot(self.bases_, np.zeros(len(self.bases_)), 'o')
-    #     plt.plot(x, fval, linewidth=3.0)
-    #     plt.show()
+    def plot(self, white_noise_var = 0.0, n = 100):
+        x = np.linspace(self.tlower_, self.tupper_, n)
+        fval = np.zeros(x.shape)
+        for i in range(len(x)):
+            fval[i] = self.eval(x[i])
+        fig = plt.figure()
+        plt.xlabel(r'Intrinsic curve parameter $t$')
+        plt.ylabel(r'$g \circ \gamma^{-1}(t)$')
+        plt.plot(x, fval)
+        if white_noise_var > 0.0:
+            noisy_fval = np.zeros(x.shape)
+            noisy_fval = fval + np.random.normal(scale=np.sqrt(white_noise_var), size = n)
+            plt.plot(x, noisy_fval, 'g', alpha = 0.5)
 
 
 def randomPolynomialIncrements_for_parallel(x, tlower, tupper, bases, coeffs):
@@ -89,13 +97,6 @@ def randomPolynomialIncrements_for_parallel(x, tlower, tupper, bases, coeffs):
         else:
             return np.polyval(coeffs[:,idx], x - 0.5 * \
                     (bases[idx] + bases[idx-1]))
-
-
-def sinus(x, frequency = 2 * np.pi, derivative = 0):
-    if derivative == 0:
-        return np.sin(2.0 * np.pi/frequency * np.linalg.norm(x))
-    elif derivative == 1:
-        return 2.0 * np.pi/frequency * 2.0 * x * np.cos(2.0 * np.pi/frequency * np.linalg.norm(x) ** 2)
 
 
 def identity_function(x, derivative = 0):
@@ -114,40 +115,3 @@ def injective_on_first_coordinate(x, derivative = 0):
         retr = np.zeros(x.shape[0])
         retr[0] = 2.0/3.0
         return retr
-
-def quadratic_on_first_coordinate(x, derivative = 0):
-    if derivative == 0:
-        return (x[0] + 1.0) ** 3
-    elif derivative == 1:
-        retr = np.zeros(x.shape[0])
-        retr[0] = 3.0 * (x[0] + 1.0) ** 2
-        return retr
-
-def ahalf_polynomial_on_first(x, derivative = 0):
-    if derivative == 0:
-        return x[0] ** 1.5
-    elif derivative == 1:
-        return 1.5 * np.sqrt(x[0])
-
-def order_three_poly(x, derivative = 0):
-    if derivative == 0:
-        return (x[0]) ** 3
-    elif derivative == 1:
-        retr = np.zeros(x.shape[0])
-        retr[0] = 3.0 * (x[0]) ** 2
-        return retr
-
-def constant(x, derivative = 0):
-    if derivative == 0:
-        return 2.0/3.0
-    elif derivative == 1:
-        return np.zeros(x.shape)
-
-def norm_function(x, derivative = 0):
-    if derivative == 0:
-        return np.linalg.norm(x) ** 2
-    elif derivative == 1:
-        return 2.0 * x
-
-def linear_both_coordinates(x):
-    return 5.0 * x[0] + 3.0 * np.sqrt(4.0 * x[1])

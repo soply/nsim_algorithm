@@ -1,36 +1,31 @@
 # coding: utf8
+"""
+Run file to run kNN experiments on synthethic problems. Problems are created
+using the synthethic problem factory.
+"""
 
+import json
 # I/O import
 import os
-import sys
-import json
-import time
-
-# For parallelization
-from joblib import Parallel, delayed
-import tempfile
 import shutil
+import sys
+import tempfile
+import time
 
 # Specific imports
 import numpy as np
+# For parallelization
+from joblib import Parallel, delayed
 from sklearn.neighbors import KNeighborsRegressor
+
+from synthethic_problem_factory.curves import *
 from synthethic_problem_factory.functions_on_manifolds import (RandomPolynomialIncrements,
-                                                    randomPolynomialIncrements_for_parallel,
-                                                    identity_function,
-                                                    injective_on_first_coordinate,
-                                                    norm_function,
-                                                    quadratic_on_first_coordinate,
-                                                    sinus,
-                                                    ahalf_polynomial_on_first)
-from synthethic_problem_factory.manifolds_as_curves_classes import (Circle_Piece_2D,
-                                                         Circle_Segment_Builder,
-                                                         Helix_Curve_3D,
-                                                         Identity_kD,
-                                                         S_Curve_2D)
-from synthethic_problem_factory.sample_synthetic_data import sample_1D_fromClass
+                                                               randomPolynomialIncrements_for_parallel)
+from synthethic_problem_factory.sample_synthetic_data import \
+    sample_1D_fromClass
 
 
-# Loss function
+# Score functions
 def MSE(prediction, reference):
     return np.sum(np.linalg.norm(prediction - reference, axis = 0) ** 2)/ \
                 np.sum(np.linalg.norm(reference, axis = 0) ** 2)
@@ -51,10 +46,10 @@ def run_example(n_samples,
                 n_neighbors,
                 xlow,
                 xhigh,
-                f_on_manifold,
-                f_f_error_CV,
-                f_f_error_test,
-                comp_time,
+                f_on_manifold, # Function on the manifold
+                f_f_error_CV, # File function error crossvalidation
+                f_f_error_test, # File function error test
+                comp_time, # File computational time
                 rep, ctr_j, ctr_k, ctr_kk, ctr_n, # Indices to write into
                 neighbor_modus = 'number',
                 CV_split = 0.1,
@@ -62,15 +57,18 @@ def run_example(n_samples,
                 apply_rotation = None,
                 random_state = None,
                 args_f = None):
-    sequence = [(1,0),(1,1),(1,0)]
-    f_manifold = Helix_Curve_3D(ambient_dim)
+    """
+    Main function to run a single experiment. Saves the results into the
+    given files. The test manifold is set below.
+    """
     if random_state is not None:
         np.random.set_state(random_state)
+    # Setting the test manifold, check synthethic_problem_factory.curves
+    f_manifold = Helix_Curve_3D(ambient_dim)
     # Split n_samples into training and CV
     n_samples_CV = np.floor(CV_split * n_samples).astype('int')
     n_samples_train = n_samples - n_samples_CV
-
-    # Sample training data
+    # Get training samples
     pdisc, points, normalspaces, fval, fval_clean, tangentspaces, basepoints = \
                                             sample_1D_fromClass(xlow,
                                                                 xhigh,
@@ -81,7 +79,7 @@ def run_example(n_samples,
                                                                 var_f = var_f,
                                                                 tube = 'l2',
                                                                 args_f = args_f)
-    # Sample CV data
+    # Get CV samples
     pdisc_CV, points_CV, normalspaces_CV, fval_CV, fval_CV_clean, tangentspaces_CV, basepoints_CV = \
                                             sample_1D_fromClass(xlow,
                                                                 xhigh,
@@ -101,6 +99,7 @@ def run_example(n_samples,
                                                                 var_f = 0.00,
                                                                 tube = 'l2',
                                                                 args_f = args_f)
+    # If desired: apply a rotation to the data set (excluding sparsity effects).
     if apply_rotation is not None:
         # Apply rotation to basepoints
         basepoints = apply_rotation.dot(basepoints)
@@ -127,15 +126,15 @@ def run_example(n_samples,
                                                                         (1,-1)), np.reshape(fval_test, (1,-1)))
         comp_time[ctr_j,ctr_k,ctr_kk,ctr_n,idx,rep] = end - start
         start = end
-        print "Fval error (CV): ", f_f_error_CV[ctr_j,ctr_k,ctr_kk,ctr_n,idx,rep]
-        print "Fval error (Test): ", f_f_error_test[ctr_j,ctr_k,ctr_kk,ctr_n,idx,rep]
+        print "Function error (CV): ", f_f_error_CV[ctr_j,ctr_k,ctr_kk,ctr_n,idx,rep]
+        print "Function error (Test): ", f_f_error_test[ctr_j,ctr_k,ctr_kk,ctr_n,idx,rep]
 
 if __name__ == "__main__":
     # Get number of jobs from sys.argv
     if len(sys.argv) > 1:
         n_jobs = int(sys.argv[1])
     else:
-        n_jobs = 4 # Default 4 jobs
+        n_jobs = 1 # Default 1 jobs
     print 'Using n_jobs = {0}'.format(n_jobs)
     # Set parameters
     xlow = 0.0 * np.pi
@@ -143,11 +142,9 @@ if __name__ == "__main__":
     np.random.seed(123123)
     fun_obj = RandomPolynomialIncrements(xlow, xhigh, 2, 100,
                                          coefficient_bound = [1.0, 1.5])
-    # Calculate variance
+    # Calculate variance for scaling the noise
     flower, fupper = fun_obj.eval(xlow), fun_obj.eval(xhigh)
     avg_grad = (fupper - flower)/(xhigh - xlow)
-    # fun_obj.plot(white_noise_var=(avg_grad * 0.04) ** 2, n = 1000)
-
     # Parameters
     run_for = {
         'n_samples' : [1000, 2000, 4000, 8000, 16000, 32000],
@@ -164,7 +161,7 @@ if __name__ == "__main__":
         rotations[D] = special_ortho_group.rvs(D)
 
     repititions = 2
-    savestr_base = 'for_plotting_kNN'
+    savestr_base = 'abc1'
     filename_errors = '../img/' + savestr_base + '/errors'
     try:
         f_tangent_error = np.load(filename_errors + '/tangent_error.npy')
@@ -223,47 +220,3 @@ if __name__ == "__main__":
                 shutil.rmtree(tmp_folder)
             except:
                 print('Failed to delete: ' + tmp_folder)
-
-    """ Post-Processing: Read errors and create error plots after model selection """
-    f_error_CV = np.load(filename_errors + '/f_error_CV.npy')
-    f_error_test = np.load(filename_errors + '/f_error_test.npy')
-    # Select the best according to the f_error_CV and plot those in plot
-    best_f_error_CV = np.zeros((len(run_for['var_f']), len(run_for['n_samples']),
-                      len(run_for['ambient_dim']), len(run_for['n_noise']),
-                      repititions))
-    best_f_error_test = np.zeros((len(run_for['var_f']), len(run_for['n_samples']),
-                      len(run_for['ambient_dim']), len(run_for['n_noise']),
-                      repititions))
-
-    # Store selected layers
-    chosen_layers = np.zeros((len(run_for['var_f']), len(run_for['n_samples']),
-                      len(run_for['ambient_dim']), len(run_for['n_noise']),
-                      repititions))
-    for rep in range(repititions):
-        for j, var_f in enumerate(run_for['var_f']):
-            for k, N in enumerate(run_for['n_samples']):
-                for kk, D in enumerate(run_for['ambient_dim']):
-                    for n, noise in enumerate(run_for['n_noise']):
-                        # Exclude zeros if layer was not useful anymore due to
-                        # insufficient points
-                        idx = np.argmin(f_error_CV[j,k,kk,n,:,rep])
-                        best_f_error_CV[j,k,kk,n,rep] = f_error_CV[j,k,kk,n,idx,rep]
-                        best_f_error_test[j,k,kk,n,rep] = f_error_test[j,k,kk,n,idx,rep]
-                        chosen_layers[j,k,kk,n,rep] = idx
-    #
-    # plot_all_errors(run_for, best_f_error_CV[:,:,:,:,:,:], save = ['n_samples'],
-    #                                    savestr = savestr_base,
-    #                                    additional_savestr = 'f_error_CV_',
-    #                                    legend_pos = 'lower left')
-    # plot_all_errors(run_for, best_f_error_test[:,:,:,:,:,:], save = ['n_samples'],
-    #                                    savestr = savestr_base,
-    #                                    additional_savestr = 'f_error_',
-    #                                    legend_pos = 'lower left',
-    #                                    ylabel = r'$MSE(f,\hat{f})$')
-    # plot_all_errors(run_for, chosen_layers[:,:,:,:,:,:], save = ['n_samples'],
-    #                                    polyfit = False,
-    #                                    savestr = savestr_base,
-    #                                    additional_savestr = 'chosen_layers',
-    #                                    ylabel = 'Chosen scale',
-    #                                    legend_pos = 'lower left',
-    #                                    yaxis_scaling = 'lin')
