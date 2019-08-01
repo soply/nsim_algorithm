@@ -254,4 +254,4 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
 
     def measure_almost_linearity(self):
         """ Returns the smallest absolute dot product between any two tangents. """
-        return np.min(np.abs(self.tangents_.dot(self.tangents.T)))
+        return np.min(np.abs(self.tangents_.dot(self.tangents_.T)))

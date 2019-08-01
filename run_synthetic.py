@@ -24,6 +24,21 @@ from synthethic_problem_factory.functions_on_manifolds import (RandomPolynomialI
 from synthethic_problem_factory.sample_synthetic_data import \
     sample_1D_fromClass
 
+from plot_tools import *
+import matplotlib as mpl
+mpl.rcParams['lines.linewidth'] = 2.2
+params = {'legend.fontsize': 'small',
+         'axes.labelsize': 'x-large',
+         'axes.titlesize':'x-large',
+         'xtick.labelsize':'x-large',
+         'ytick.labelsize':'x-large',
+         'lines.markersize' : 7}
+mpl.rcParams.update(params)
+
+font = {'family' : 'normal',
+        'size'   : 22}
+
+mpl.rc('font', **font)
 
 # Score functions
 def MSE(prediction, reference):
@@ -66,7 +81,7 @@ def run_example(n_samples,
     if random_state is not None:
         np.random.set_state(random_state)
     # Construct manifold
-    f_manifold = Identity_kD(2, ambient_dim)
+    f_manifold = Helix_Curve_3D(ambient_dim)
     # Split n_samples into training and CV
     n_samples_CV = np.floor(CV_split * n_samples).astype('int')
     n_samples_train = n_samples - n_samples_CV
@@ -101,6 +116,7 @@ def run_example(n_samples,
                                                 var_f = 0.00,
                                                 tube = 'l2',
                                                 args_f = args_f)
+
     # If desired: apply a rotation to the data set (excluding sparsity effects).
     if apply_rotation is not None:
         # Apply rotation to basepoints
@@ -177,19 +193,22 @@ if __name__ == "__main__":
     print 'Using n_jobs = {0}'.format(n_jobs)
     # Cuve start and endpoint
     xlow = 0.0 * np.pi
-    xhigh = 3 * np.pi
+    xhigh = 3.0 * np.pi
     np.random.seed(123123)
     fun_obj = RandomPolynomialIncrements(xlow, xhigh, 2, 100,
                                          coefficient_bound = [1.0, 1.5])
-    # Calculate variance
-    flower, fupper = fun_obj.eval(xlow), fun_obj.eval(xhigh)
-    # Average gradient for scaling function noise
-    avg_grad = (fupper - flower)/(xhigh - xlow)
+    # # Calculate variance
+    # flower, fupper = fun_obj.eval(xlow), fun_obj.eval(xhigh)
+    # # Average gradient for scaling function noise
+    # avg_grad = (fupper - flower)/(xhigh - xlow)
+    # fun_obj.plot(uniform_noise_var = (0.1 * avg_grad) ** 2, n = 4000)
+    # plt.savefig('function_example.pdf',format = 'pdf')
+    # plt.show()
     # Parameters
     run_for = {
-        'n_samples' : [500],#, 16000, 32000, 64000, 128000, 256000, 512000],
+        'n_samples' : [16000, 32000, 64000, 128000, 256000, 512000],
         'n_noise' : [0.25],
-        'ambient_dim' : [2],
+        'ambient_dim' : [3],
         'var_f' : [0.0],#, (avg_grad * 0.04) ** 2, (avg_grad * 0.08) ** 2],
         'ball_radius' : [0.5],
         'n_levelsets' : [15],

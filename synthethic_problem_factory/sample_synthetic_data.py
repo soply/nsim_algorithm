@@ -68,7 +68,7 @@ def sample_1D_fromClass(a, b, manifold, f_on_manifold,
 
     tangentspaces : np.array of size D x 1 x N
         True tangent of the curve at each sample gamma(t)
-        
+
     basepoints : np.array of size D x N
         gamma(t) samples (only if reurn_original is true)
     """
@@ -111,7 +111,9 @@ def sample_1D_fromClass(a, b, manifold, f_on_manifold,
     # Apply noise to the function values
     fval_clean = np.copy(fval)
     if var_f > 0.0:
-        fval_noise = np.random.normal(loc = 0.0, scale = np.sqrt(var_f),
+        # fval_noise = np.random.normal(loc = 0.0, scale = np.sqrt(var_f),
+        #                               size = n_samples)
+        fval_noise = np.random.uniform(low = -np.sqrt(var_f), high = np.sqrt(var_f),
                                       size = n_samples)
         fval += fval_noise
     if return_original:
