@@ -87,6 +87,8 @@ class NSIM_Estimator(BaseEstimator, RegressorMixin):
             self._construct_statistically_equivalent_blocks() # Sets self.labels_
         elif self.split_by == 'dyadic':
             self._construct_dyadic_partition() # Sets self.labels_
+        self.original_labels_= np.zeros(self.N).astype('int')
+        self.original_labels_[order] = self.labels_ # Sets self.original_labels_
         # Check samples per level set
         n_samples_per_levelset = np.bincount(self.labels_).astype('int')
         if any(n_samples_per_levelset <= self.D):

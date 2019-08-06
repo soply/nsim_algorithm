@@ -2,11 +2,13 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import ticker
 
 
 """
 Some auxiliary methods for plotting, if needed.
 """
+
 
 def handle_2D_plot():
     fig = plt.figure()
@@ -28,7 +30,10 @@ def add_function(point_cloud, fval, ax, cb = True, dim = 2):
         sc = ax.scatter(point_cloud[0, :], point_cloud[1, :], point_cloud[2, :],
                         c=fval, s = 50.0)
     if cb == True:
-        plt.colorbar(sc)
+        cb = plt.colorbar(sc)
+        tick_locator = ticker.MaxNLocator(nbins=5)
+        cb.locator = tick_locator
+        cb.update_ticks()
 
 def add_scattered_pointcloud(point_cloud, labels, ax, label = None, dim = 2):
     if dim == 2:

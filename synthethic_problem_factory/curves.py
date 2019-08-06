@@ -1,4 +1,8 @@
 # coding: utf8
+
+from abc import ABCMeta, abstractmethod
+
+
 """
 Implementation of some examplary curves. Identity_kD corresponds to a SIM model,
 the rest are actual curves with nonzero curvature. Circle_Segment_Builder can
@@ -25,7 +29,61 @@ def normal_nd(vectors):
     basis_idx = np.setdiff1d(np.arange(vectors.shape[0]), compl_basis_idx)
     return V.T[:, basis_idx] # columns of V to small S are orthogonal basis
 
-class Identity_kD(object):
+
+
+def get_manifold(n_features, manifold_id = None, start = 0, end = 1, **kwargs):
+    """ Auxiliary method for sampling retrieving manifold based on identifier."""
+    if manifold_id == 'identity':
+        manifold = Identity_kD(n_features, start, end, **kwargs)
+    elif manifold_id == 'circle':
+        manifold = Circle(n_features, start, end)
+    elif manifold_id == 'scurve':
+        manifold = S_Curve_2D(n_features, start, end)
+    elif manifold_id == 'helix':
+        manifold = Helix_Curve_3D(n_features, start, end, **kwargs)
+    else:
+        raise NotImplementedError("Manifold {0} is not implemented. ".format(manifold_id))
+    return manifold
+
+
+class Curve:
+    """ Abstract Base class for curves. Implements shared methods.
+    Note: Not useful on it's own. """
+
+    __metaclass__ = ABCMeta
+
+    def __init__(self, n_features, start, end):
+        self._n = n_features
+        self._t0 = start
+        self._t1 = end
+
+    def get_plot_dim(self):
+        return self._plot_dim
+
+    def get_n_features(self):
+        return self._n
+
+    def get_length(self):
+        return np.abs(self._t1 - self._t0)
+
+    def get_start(self):
+        return self._t0
+
+    def get_end(self):
+        return self._t1
+
+    @abstractmethod
+    def get_basepoint(self, t): pass
+
+    @abstractmethod
+    def get_tangent(self, t): pass
+
+    @abstractmethod
+    def get_normal(self, t): pass
+
+
+
+class Identity_kD(Curve):
     """
         gamma : I -> R^D
     with
@@ -33,16 +91,13 @@ class Identity_kD(object):
 
     Normalization to ensure arc-length parametrization.
     """
-    def __init__(self, n_active_features, n_features):
-        self._k = n_active_features
-        self._n = n_features
+    def __init__(self, n_features, start, end, n_active_features = None):
+        s = super(Identity_kD, self).__init__(n_features, start, end)
+        if n_active_features is None:
+            self._k = n_features
+        else:
+            self._k = n_active_features
         self._plot_dim = np.minimum(self._k, 3).astype('int')
-
-    def get_plot_dim(self):
-        return self._plot_dim
-
-    def get_n_features(self):
-        return self._n
 
     def get_basepoint(self, t):
         vec = np.zeros(self._n)
@@ -57,11 +112,8 @@ class Identity_kD(object):
     def get_normal(self, t):
         return normal_nd(np.reshape(self.get_tangent(t), (self._n, -1)))
 
-    def get_length(self, t0, t1):
-        return np.abs(t1-t0)
 
-
-class Circle_Piece_2D(object):
+class Circle_Piece_2D(Curve):
     """
         gamma : I -> R^D
     with
@@ -69,15 +121,9 @@ class Circle_Piece_2D(object):
 
     # Easily arc-length parameterized
     """
-    def __init__(self, n_features):
+    def __init__(self, n_features, start, end):
+        s = super(Circle_Piece_2D, self).__init__(n_features, start, end)
         self._plot_dim = 2
-        self._n = n_features
-
-    def get_plot_dim(self):
-        return self._plot_dim
-
-    def get_n_features(self):
-        return self._n
 
     def get_basepoint(self, t):
         vec = np.zeros(self._n)
@@ -97,49 +143,43 @@ class Circle_Piece_2D(object):
     def get_normal(self, t):
         return normal_nd(np.reshape(self.get_tangent(t), (self._n, -1)))
 
-    def get_length(self, t0, t1):
-        return np.abs(t1-t0)
 
-
-class S_Curve_2D(object):
+class S_Curve_2D(Curve):
     """
         gamma : [-pi/2,pi/2] -> R^D
     with
         gamma(t) = (cos(-t),sin(-t)) if t <= 0 and
         gamma(t) = (2,0) - (cos(t), sin(t)) if t >= 0
 
-    # Note that [-pi/2,pi/2] or a subset of this should be used but not an
-    extended version.
+
+    REMARK: Shifted domain by pi/2 in order to have domain [0,pi]
     """
-    def __init__(self, n_features):
+    def __init__(self, n_features, start, end):
+        s = super(S_Curve_2D, self).__init__(n_features, start, end)
         self._plot_dim = 2
-        self._n = n_features
-
-    def get_plot_dim(self):
-        return self._plot_dim
-
-    def get_n_features(self):
-        return self._n
 
     def get_basepoint(self, t):
+        t -= np.pi/2
         vec = np.zeros(self._n)
-        if t <= 0.0:
+        if t <= 0:
             vec[0], vec[1] = np.cos(t), np.sin(t)
         else:
             vec[0], vec[1] = 2.0 - np.cos(t), np.sin(t)
         return vec
 
     def get_tangent(self, t):
+        t -= np.pi/2
         vec = np.zeros(self._n)
-        if t <= 0.0:
+        if t <= 0:
             vec[0], vec[1] = -np.sin(t), np.cos(t)
         else:
             vec[0], vec[1] = np.sin(t), np.cos(t)
         return vec
 
     def get_curvature_vector(self, t):
+        t -= np.pi/2
         vec = np.zeros(self._n)
-        if t <= 0.0:
+        if t <= 0:
             vec[0], vec[1] = -np.cos(t), -np.sin(t)
         else:
             vec[0], vec[1] = np.cos(t), -np.sin(t)
@@ -148,11 +188,7 @@ class S_Curve_2D(object):
     def get_normal(self, t):
         return normal_nd(np.reshape(self.get_tangent(t), (self._n, -1)))
 
-    def get_length(self, t0, t1):
-        return np.abs(t1-t0)
-
-
-class Helix_Curve_3D(object):
+class Helix_Curve_3D(Curve):
     """
         gamma : I -> R^D
     with
@@ -162,18 +198,12 @@ class Helix_Curve_3D(object):
 
     # Arc-length parameterized
     """
-    def __init__(self, n_features, radius = 1, pitch = 1):
+    def __init__(self, n_features, start, end, radius = 1, pitch = 1):
+        s = super(Helix_Curve_3D, self).__init__(n_features, start, end)
         self._plot_dim = 3
-        self._n = n_features
         self._radius = radius
         self._pitch = pitch
         self._alpha = 1.0/np.sqrt(self._radius ** 2 + self._pitch ** 2)
-
-    def get_plot_dim(self):
-        return self._plot_dim
-
-    def get_n_features(self):
-        return self._n
 
     def get_basepoint(self, t):
         vec = np.zeros(self._n)
@@ -198,9 +228,6 @@ class Helix_Curve_3D(object):
 
     def get_normal(self, t):
         return normal_nd(np.reshape(self.get_tangent(t), (self._n, -1)))
-
-    def get_length(self, t0, t1):
-        return np.abs(t1-t0)
 
 
 class Circle_Segment_Builder(object):

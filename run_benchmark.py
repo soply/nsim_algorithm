@@ -30,8 +30,7 @@ from synthethic_problem_factory.functions_on_manifolds import (RandomPolynomialI
                                                                randomPolynomialIncrements_for_parallel)
 from synthethic_problem_factory.sample_synthetic_data import \
     sample_1D_fromClass
-
-from estimator import NSIM_Estimator
+from benchmarks.utils import estimate
 
 # Score functions
 def MSE(prediction, reference):
@@ -56,7 +55,6 @@ def run_example(n_samples,
                 f_on_manifold,
                 estimator,
                 parametergrid,
-                f_tangent_error, # File tangent error
                 f_f_error_CV, # File function error crossvalidation
                 f_f_error_test, # File function error test
                 comp_time, # File computational time
@@ -86,7 +84,7 @@ def run_example(n_samples,
                                                                 tube = 'l2',
                                                                 args_f = args_f)
     # Extract training and CV set
-    pdisc, points, fval = all_pdisc[:n_samples_train], all_points[:,:n_samples_train], all_fval[:n_samples_train]
+    points, fval = all_points[:,:n_samples_train], all_fval[:n_samples_train]
     points_CV, fval_CV = all_points[:,n_samples_train:], all_fval[n_samples_train:]
     # Get test samples
     n_test_samples = 1000
@@ -98,51 +96,21 @@ def run_example(n_samples,
                                                                 tube = 'l2',
                                                                 args_f = args_f)
     for idx, param in enumerate(parametergrid):
-        if var_f == 0.0:
-            nNei = [1] # Optimal choice kNN for noisefree data
-            J = np.floor(float(n_samples_train)/float(ambient_dim * estimator['options']['noisefree_levelset_fac'])).astype('int')
-        else:
-            nNei = np.ceil(np.array(estimator['options']['n_neighbors']) * np.power(n_samples, 2.0/3.0)).astype('int')
-            J = param['n_levelsets']
         start = time.time()
-        nsim_kNN = NSIM_Estimator(n_neighbors = nNei,
-                                  n_levelsets = J,
-                                  ball_radius = param['ball_radius'],
-                                  split_by = estimator['options']['split_by'])
-        try:
-            nsim_kNN = nsim_kNN.fit(points.T, fval)
-            fval_predict_CV = nsim_kNN.predict(points_CV.T)
-            fval_predict_test = nsim_kNN.predict(points_test.T)
-            end = time.time()
-            # Tangent Error
-            J_real = len(set(nsim_kNN.original_labels_))
-            tan_errs = np.zeros(J_real)
-            for i in range(J_real):
-                tmean = np.mean(pdisc[nsim_kNN.original_labels_ == i])
-                real_tangent = manifold.get_tangent(tmean)
-                tan_errs[i] = np.minimum(np.linalg.norm(real_tangent - nsim_kNN.tangents_[i,:]),
-                                np.linalg.norm(real_tangent + nsim_kNN.tangents_[i,:]))
-            if var_f == 0:
-                f_f_error_CV[i1,i2,i3,i4,:,:,rep] = RMSE(np.reshape(fval_predict_CV[:,0], (1,-1)), np.reshape(fval_CV, (1,-1)))
-                f_f_error_test[i1,i2,i3,i4,:,:,rep] = RMSE(np.reshape(fval_predict_test[:,0], (1,-1)), np.reshape(fval_test, (1,-1)))
-                comp_time[i1,i2,i3,i4,:,:,rep] = end - start
-                f_tangent_error[i1,i2,i3,i4,:,:,rep] = np.sqrt(np.mean(np.square(tan_errs)))
-                break # In the noise free case it is not necessary to crossvalidate parameters
-            else:
-                for l in range(len(nNei)):
-                    f_f_error_CV[i1,i2,i3,i4,l,idx,rep] = RMSE(np.reshape(fval_predict_CV[:,l], (1,-1)), np.reshape(fval_CV, (1,-1)))
-                    f_f_error_test[i1,i2,i3,i4,l,idx,rep] = RMSE(np.reshape(fval_predict_test[:,l], (1,-1)), np.reshape(fval_test, (1,-1)))
-                f_tangent_error[i1,i2,i3,i4,:,idx,rep] = np.sqrt(np.mean(np.square(tan_errs)))
-                comp_time[i1,i2,i3,i4,:,idx,rep] = end - start
-            start = end
-        except (RuntimeError, ValueError) as e: # Estimator throws an error if one of the level sets is not populated at all (happens only for dyadic cells).
-            print e
-            f_f_error_CV[i1,i2,i3,i4,:,idx,rep] = 1e16
-            f_f_error_test[i1,i2,i3,i4,:,idx,rep] = 1e16
-            f_tangent_error[i1,i2,i3,i4,:,idx,rep] = 1e16
-        print "Tangent error: ", f_tangent_error[i1,i2,i3,i4,0,idx,rep]
-        print "Function error (CV): ", f_f_error_CV[i1,i2,i3,i4,:,idx,rep]
-        print "Function error (Test): ", f_f_error_test[i1,i2,i3,i4,:,idx,rep]
+        fval_predict_CV, fval_predict_test = estimate(points.T, fval, points_CV.T, points_test.T,
+                                                      estimator, param, N = n_samples, D = ambient_dim)
+        end = time.time()
+        if CV_split == 0.0:
+            f_f_error_CV[i1,i2,i3,i4,idx,rep] = 1e16
+        else:
+            f_f_error_CV[i1,i2,i3,i4,idx,rep] = RMSE(np.reshape(fval_predict_CV, \
+                                                                        (1,-1)), np.reshape(fval_CV, (1,-1)))
+            print "Function error (CV): ", f_f_error_CV[i1,i2,i3,i4,idx,rep]
+        f_f_error_test[i1,i2,i3,i4,idx,rep] = RMSE(np.reshape(fval_predict_test, \
+                                                                        (1,-1)), np.reshape(fval_test, (1,-1)))
+        comp_time[i1,i2,i3,i4,idx,rep] = end - start
+        start = end
+        print "Function error (Test): ", f_f_error_test[i1,i2,i3,i4,idx,rep]
     print "Finished N = {0}     D = {1}     sigma = {2}     sigma_f = {3}   rep = {4}".format(
         n_samples, ambient_dim, noise, var_f, rep)
 
@@ -173,36 +141,33 @@ if __name__ == "__main__":
         print "Considering manifold {0}".format(manifold['manifold_id'])
         # Parameters
         run_for = {
-            'N' : [200 * (2 ** i) for i in range(10)],
-            'D' : [4,8,16],
-            'sigma_X' : [0.25],
-            'sigma_f' : [0.0, 1e-5, 1e-4, 1e-3, 1e-2],
-            'repititions' : 20,
+            'n_samples' : [100,200,400,800,1600,3200],
+            'ambient_dim' : [4],
+            'n_noise' : [0.25],
+            'var_f' : [0.0],
+            'repititions' : 2,
             # Estimator information
             'estimator' : {
-                'estimator_id' : 'nsim',
+                'estimator_id' : 'isotron',
                 'options' : {
-                    'split_by' : 'stateq',
-                    'CV_split' : 0.1,
-                    'noisefree_levelset_fac' : 15,
-                    'n_neighbors' : [0.5]
+                    'CV_split' : 0.15,
+                    'max_iter' : 2000,
+                    # 'learning_rate' : 0.1,
                 },
                 'params' : {
-                    'n_levelsets' : [1 * (2 ** i) for i in range(14)],
-                    'ball_radius' : [0.5],
+                    # 'n_hidden' : [20],
                 }
             }
         }
         parametergrid = ParameterGrid(run_for['estimator']['params'])
-        random_seeds = np.random.randint(0, high = 2**32 - 1, size = (len(run_for['N']),
-                                                              len(run_for['D']),
-                                                              len(run_for['sigma_X']),
-                                                              len(run_for['sigma_f']),
+        random_seeds = np.random.randint(0, high = 2**32 - 1, size = (len(run_for['n_samples']),
+                                                              len(run_for['ambient_dim']),
+                                                              len(run_for['n_noise']),
+                                                              len(run_for['var_f']),
                                                               run_for['repititions']))
-        savestr_base = '/abc1'
+        savestr_base = 'abc1'
         filename_errors = 'results/' + manifold['manifold_id'] + '/' + run_for['estimator']['estimator_id'] + savestr_base
         try:
-            f_tangent_error = np.load(filename_errors + '/tangent_error.npy')
             f_f_error_CV = np.load(filename_errors + '/f_error_CV.npy')
             f_f_error_test = np.load(filename_errors + '/f_error_test.npy')
             comp_time = np.load(filename_errors + '/comp_time.npy')
@@ -213,17 +178,14 @@ if __name__ == "__main__":
             with open(filename_errors + '/log.txt', 'w') as file:
                 file.write(json.dumps(run_for, indent=4)) # use `json.loads` to do the reverse
             tmp_folder = tempfile.mkdtemp()
-            dummy_for_shape = np.zeros((len(run_for['N']),
-                                        len(run_for['D']),
-                                        len(run_for['sigma_X']),
-                                        len(run_for['sigma_f']),
-                                        len(run_for['estimator']['options']['n_neighbors']),
+            dummy_for_shape = np.zeros((len(run_for['n_samples']),
+                                        len(run_for['ambient_dim']),
+                                        len(run_for['n_noise']),
+                                        len(run_for['var_f']),
                                         len(list(parametergrid)),
                                         run_for['repititions']))
             try:
                 # Create error containers
-                f_tangent_error = np.memmap(os.path.join(tmp_folder, 'tangent_error'), dtype='float64',
-                                           shape=dummy_for_shape.shape, mode='w+')
                 f_f_error_CV = np.memmap(os.path.join(tmp_folder, 'f_error_CV'), dtype='float64',
                                            shape=dummy_for_shape.shape, mode='w+')
                 f_f_error_test = np.memmap(os.path.join(tmp_folder, 'f_error_test'), dtype='float64',
@@ -232,16 +194,15 @@ if __name__ == "__main__":
                                            shape=dummy_for_shape.shape, mode='w+')
                 # Run experiments in parallel
                 Parallel(n_jobs=n_jobs, backend = "multiprocessing")(delayed(run_example)(
-                                    run_for['N'][i1],
-                                    run_for['D'][i2],
-                                    run_for['sigma_X'][i3],
-                                    run_for['sigma_f'][i4],
+                                    run_for['n_samples'][i1],
+                                    run_for['ambient_dim'][i2],
+                                    run_for['n_noise'][i3],
+                                    run_for['var_f'][i4],
                                     random_seeds,
                                     manifold,
                                     randomPolynomialIncrements_for_parallel,
                                     run_for['estimator'],
                                     parametergrid,
-                                    f_tangent_error,
                                     f_f_error_CV,
                                     f_f_error_test,
                                     comp_time,
@@ -249,12 +210,11 @@ if __name__ == "__main__":
                                     savestr_base = savestr_base + '/' + str(rep) + '/',
                                     args_f = (bases, coeffs))
                                     for rep in range(run_for['repititions'])
-                                    for i4 in range(len(run_for['sigma_f']))
-                                    for i1 in range(len(run_for['N']))
-                                    for i2 in range(len(run_for['D']))
-                                    for i3 in range(len(run_for['sigma_X'])))
+                                    for i4 in range(len(run_for['var_f']))
+                                    for i1 in range(len(run_for['n_samples']))
+                                    for i2 in range(len(run_for['ambient_dim']))
+                                    for i3 in range(len(run_for['n_noise'])))
                 # Dump memmaps to files
-                f_tangent_error.dump(filename_errors + '/tangent_error.npy')
                 f_f_error_CV.dump(filename_errors + '/f_error_CV.npy')
                 f_f_error_test.dump(filename_errors + '/f_error_test.npy')
                 comp_time.dump(filename_errors + '/comp_time.npy')
@@ -263,3 +223,4 @@ if __name__ == "__main__":
                     shutil.rmtree(tmp_folder)
                 except:
                     print('Failed to delete: ' + tmp_folder)
+        import pdb; pdb.set_trace()

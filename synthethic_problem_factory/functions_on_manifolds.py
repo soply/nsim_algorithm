@@ -5,25 +5,24 @@ the functions are basic.
 """
 import numpy as np
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import numpy as np
-import matplotlib.ticker as ticker
-
-import matplotlib as mpl
-mpl.rcParams['lines.linewidth'] = 2.2
-params = {'legend.fontsize': 'small',
-         'axes.labelsize': 'x-large',
-         'axes.titlesize':'x-large',
-         'xtick.labelsize':'x-large',
-         'ytick.labelsize':'x-large',
-         'lines.markersize' : 7}
-mpl.rcParams.update(params)
-
-font = {'family' : 'normal',
-        'size'   : 24}
-
-mpl.rc('font', **font)
+# import matplotlib as mpl
+# import matplotlib.pyplot as plt
+# import matplotlib.ticker as ticker
+#
+# import matplotlib as mpl
+# mpl.rcParams['lines.linewidth'] = 2.2
+# params = {'legend.fontsize': 'small',
+#          'axes.labelsize': 'x-large',
+#          'axes.titlesize':'x-large',
+#          'xtick.labelsize':'x-large',
+#          'ytick.labelsize':'x-large',
+#          'lines.markersize' : 7}
+# mpl.rcParams.update(params)
+#
+# font = {'family' : 'normal',
+#         'size'   : 24}
+#
+# mpl.rc('font', **font)
 
 class RandomPolynomialIncrements(object):
     """ Use with area of definition > 0 to avoid non-monotonicity. """
@@ -76,38 +75,37 @@ class RandomPolynomialIncrements(object):
         else:
             return np.polyval(self.coeffs_[:,idx], x - 0.5 * (self.bases_[idx] + self.bases_[idx-1]))
 
-
-    def plot(self, white_noise_var = 0.0, uniform_noise_var = 0.0, n = 5000):
-        x = np.linspace(self.tlower_, self.tupper_, n)
-        fval = np.zeros(x.shape)
-        for i in range(len(x)):
-            fval[i] = self.eval(x[i])
-        fig = plt.figure(figsize = (16,12))
-        plt.xlabel(r'Intrinsic curve parameter $t$')
-        plt.ylabel(r'$g \circ \gamma^{-1}(t)$')
-        plt.plot(x, fval)
-        if white_noise_var > 0.0:
-            noisy_fval = np.zeros(x.shape)
-            noisy_fval = fval + np.random.normal(scale=np.sqrt(white_noise_var), size = n)
-            plt.plot(x, noisy_fval, 'g', alpha = 0.5)
-        if uniform_noise_var > 0.0:
-            noisy_fval = np.zeros(x.shape)
-            noisy_fval = fval + np.random.uniform(low = -np.sqrt(uniform_noise_var),
-                                                 high = np.sqrt(uniform_noise_var),
-                                                 size = n)
-            plt.plot(x, noisy_fval, 'g', alpha = 0.5)
+    # def plot(self, white_noise_var = 0.0, uniform_noise_var = 0.0, n = 5000):
+    #     x = np.linspace(self.tlower_, self.tupper_, n)
+    #     fval = np.zeros(x.shape)
+    #     for i in range(len(x)):
+    #         fval[i] = self.eval(x[i])
+    #     fig = plt.figure(figsize = (16,12))
+    #     plt.xlabel(r'Intrinsic curve parameter $t$')
+    #     plt.ylabel(r'$g \circ \gamma^{-1}(t)$')
+    #     plt.plot(x, fval)
+    #     if white_noise_var > 0.0:
+    #         noisy_fval = np.zeros(x.shape)
+    #         noisy_fval = fval + np.random.normal(scale=np.sqrt(white_noise_var), size = n)
+    #         plt.plot(x, noisy_fval, 'g', alpha = 0.5)
+    #     if uniform_noise_var > 0.0:
+    #         noisy_fval = np.zeros(x.shape)
+    #         noisy_fval = fval + np.random.uniform(low = -np.sqrt(uniform_noise_var),
+    #                                              high = np.sqrt(uniform_noise_var),
+    #                                              size = n)
+    #         plt.plot(x, noisy_fval, 'g', alpha = 0.5)
 
 
 def randomPolynomialIncrements_for_parallel(x, tlower, tupper, bases, coeffs):
-        if np.abs(x - tupper) < 1e-15:
-            x = tupper - 1e-15
-        idx = np.digitize(x, bases) - 1
-        if idx == 0:
-            return np.polyval(coeffs[:,idx], x - 0.5 * \
-                    (bases[idx] + 0.05 * (tupper - tlower)))
-        else:
-            return np.polyval(coeffs[:,idx], x - 0.5 * \
-                    (bases[idx] + bases[idx-1]))
+    if np.abs(x - tupper) < 1e-15:
+        x = tupper - 1e-15
+    idx = np.digitize(x, bases) - 1
+    if idx == 0:
+        return np.polyval(coeffs[:,idx], x - 0.5 * \
+                (bases[idx] + 0.05 * (tupper - tlower)))
+    else:
+        return np.polyval(coeffs[:,idx], x - 0.5 * \
+                (bases[idx] + bases[idx-1]))
 
 
 def identity_function(x, derivative = 0):

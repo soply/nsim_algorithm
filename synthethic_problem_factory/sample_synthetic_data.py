@@ -4,7 +4,7 @@ import numpy as np
 Auxiliary function to sample synthethic data.
 """
 
-def sample_1D_fromClass(a, b, manifold, f_on_manifold,
+def sample_1D_fromClass(manifold, f_on_manifold,
                         n_samples, noise_level, tube = 'l2', var_f = 0.0,
                         return_original = False, args_f = None):
     """
@@ -18,11 +18,8 @@ def sample_1D_fromClass(a, b, manifold, f_on_manifold,
 
     Parameters
     -----------
-    a : float
-        Start point for t domain
-
-    b : float
-        End point for t domain
+    manifold: Curve object from curves.py
+        Instantiation of a curve using classes provided in curves.py
 
     f_on_manifold: python function
         1D link function that is evaluated for all t points.
@@ -73,8 +70,9 @@ def sample_1D_fromClass(a, b, manifold, f_on_manifold,
         gamma(t) samples (only if reurn_original is true)
     """
     # Find length corresponding to end parameter b
-    s_disc = np.random.uniform(low = a, high = b, size = (n_samples))
-    s_disc = np.sort(s_disc)
+    s_disc = np.random.uniform(low = manifold.get_start(),
+                               high = manifold.get_end(), size = (n_samples))
+    # s_disc = np.sort(s_disc)
     n_features = manifold.get_n_features()
     # Containers
     basepoints = np.zeros((n_features, n_samples))
@@ -105,15 +103,15 @@ def sample_1D_fromClass(a, b, manifold, f_on_manifold,
                                    axis=1)
             points[:,i] = basepoints[:,i] + normal_vector
             if args_f is not None:
-                fval[i] = f_on_manifold(np.array([s_disc[i]]), *args_f)
+                fval[i] = f_on_manifold(np.array([s_disc[i]]), manifold.get_start(), manifold.get_end(), *args_f)
             else:
                 fval[i] = f_on_manifold(np.array([s_disc[i]]))
     # Apply noise to the function values
     fval_clean = np.copy(fval)
     if var_f > 0.0:
-        # fval_noise = np.random.normal(loc = 0.0, scale = np.sqrt(var_f),
-        #                               size = n_samples)
-        fval_noise = np.random.uniform(low = -np.sqrt(var_f), high = np.sqrt(var_f),
+        Ymin, Ymax = np.min(fval_clean), np.max(fval_clean)
+        avg_grad = (Ymax - Ymin)/(manifold.get_end() - manifold.get_start())
+        fval_noise = np.random.uniform(low = -avg_grad * np.sqrt(var_f), high = avg_grad * np.sqrt(var_f),
                                       size = n_samples)
         fval += fval_noise
     if return_original:
