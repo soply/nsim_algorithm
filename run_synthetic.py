@@ -33,6 +33,7 @@ from synthethic_problem_factory.sample_synthetic_data import \
 
 from estimator import NSIM_Estimator
 
+
 # Score functions
 def MSE(prediction, reference):
     return np.sum(np.linalg.norm(prediction - reference, axis = 0) ** 2)/ \

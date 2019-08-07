@@ -141,17 +141,17 @@ if __name__ == "__main__":
         print "Considering manifold {0}".format(manifold['manifold_id'])
         # Parameters
         run_for = {
-            'n_samples' : [100,200,400,800,1600,3200],
-            'ambient_dim' : [4],
-            'n_noise' : [0.25],
-            'var_f' : [0.0],
-            'repititions' : 2,
+            'N' : [200 * (2 ** i) for i in range(10)],
+            'D' : [4,8,16],
+            'sigma_X' : [0.25],
+            'sigma_f' : [0.0, 1e-5, 1e-4, 1e-3, 1e-2],
+            'repititions' : 20,
             # Estimator information
             'estimator' : {
                 'estimator_id' : 'isotron',
                 'options' : {
                     'CV_split' : 0.15,
-                    'max_iter' : 2000,
+                    'max_iter' : 1000,
                     # 'learning_rate' : 0.1,
                 },
                 'params' : {
@@ -160,10 +160,10 @@ if __name__ == "__main__":
             }
         }
         parametergrid = ParameterGrid(run_for['estimator']['params'])
-        random_seeds = np.random.randint(0, high = 2**32 - 1, size = (len(run_for['n_samples']),
-                                                              len(run_for['ambient_dim']),
-                                                              len(run_for['n_noise']),
-                                                              len(run_for['var_f']),
+        random_seeds = np.random.randint(0, high = 2**32 - 1, size = (len(run_for['N']),
+                                                              len(run_for['D']),
+                                                              len(run_for['sigma_X']),
+                                                              len(run_for['sigma_f']),
                                                               run_for['repititions']))
         savestr_base = 'abc1'
         filename_errors = 'results/' + manifold['manifold_id'] + '/' + run_for['estimator']['estimator_id'] + savestr_base
@@ -178,10 +178,10 @@ if __name__ == "__main__":
             with open(filename_errors + '/log.txt', 'w') as file:
                 file.write(json.dumps(run_for, indent=4)) # use `json.loads` to do the reverse
             tmp_folder = tempfile.mkdtemp()
-            dummy_for_shape = np.zeros((len(run_for['n_samples']),
-                                        len(run_for['ambient_dim']),
-                                        len(run_for['n_noise']),
-                                        len(run_for['var_f']),
+            dummy_for_shape = np.zeros((len(run_for['N']),
+                                        len(run_for['D']),
+                                        len(run_for['sigma_X']),
+                                        len(run_for['sigma_f']),
                                         len(list(parametergrid)),
                                         run_for['repititions']))
             try:
@@ -194,10 +194,10 @@ if __name__ == "__main__":
                                            shape=dummy_for_shape.shape, mode='w+')
                 # Run experiments in parallel
                 Parallel(n_jobs=n_jobs, backend = "multiprocessing")(delayed(run_example)(
-                                    run_for['n_samples'][i1],
-                                    run_for['ambient_dim'][i2],
-                                    run_for['n_noise'][i3],
-                                    run_for['var_f'][i4],
+                                    run_for['N'][i1],
+                                    run_for['D'][i2],
+                                    run_for['sigma_X'][i3],
+                                    run_for['sigma_f'][i4],
                                     random_seeds,
                                     manifold,
                                     randomPolynomialIncrements_for_parallel,
@@ -210,10 +210,10 @@ if __name__ == "__main__":
                                     savestr_base = savestr_base + '/' + str(rep) + '/',
                                     args_f = (bases, coeffs))
                                     for rep in range(run_for['repititions'])
-                                    for i4 in range(len(run_for['var_f']))
-                                    for i1 in range(len(run_for['n_samples']))
-                                    for i2 in range(len(run_for['ambient_dim']))
-                                    for i3 in range(len(run_for['n_noise'])))
+                                    for i1 in range(len(run_for['N']))
+                                    for i2 in range(len(run_for['D']))
+                                    for i3 in range(len(run_for['sigma_X']))
+                                    for i4 in range(len(run_for['sigma_f'])))
                 # Dump memmaps to files
                 f_f_error_CV.dump(filename_errors + '/f_error_CV.npy')
                 f_f_error_test.dump(filename_errors + '/f_error_test.npy')

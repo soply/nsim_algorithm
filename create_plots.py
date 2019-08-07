@@ -3,6 +3,8 @@
 Auxiliary file to create the plots for NSIM article.
 """
 
+from evaluation.function_error import plot_error
+from evaluation.tangent_error import plot_error as plot_error_tan
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -13,7 +15,7 @@ logfmt = ticker.LogFormatterExponent(base=10.0, labelOnlyBase=True)
 
 import matplotlib as mpl
 mpl.rcParams['lines.linewidth'] = 2.2
-params = {'legend.fontsize': 'medium',
+params = {'legend.fontsize': 'x-large',
          'axes.labelsize': 'x-large',
          'axes.titlesize':'x-large',
          'xtick.labelsize':'x-large',
@@ -29,15 +31,16 @@ __linestyle_rotation__ = ['-', '--', ':', '-.']
 
 def create_noisefree_plots():
     # Load files for NSIM
-    savestr_base_nsim = 'noise_free_helix4'
-    filename_errors_nsim = '../img/' + savestr_base_nsim + '/errors'
+    savestr_base_nsim = 'noise_free_helix_2'
+    filename_errors_nsim = '../img/2019/' + savestr_base_nsim + '/errors'
     tan_err_nsim = np.load(filename_errors_nsim + '/tangent_error.npy')
     f_test_nsim = np.load(filename_errors_nsim + '/f_error_test.npy')
     # Load files for kNN
-    savestr_base_kNN = 'helix_without_noise_kNN'
-    filename_errors_kNN = '../img/' + savestr_base_kNN + '/errors'
+    savestr_base_kNN = 'for_plotting_kNN'
+    filename_errors_kNN = '../img/2019/' + savestr_base_kNN + '/errors'
     f_test_kNN = np.load(filename_errors_kNN + '/f_error_test.npy')
-    N = [1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000]
+    import pdb; pdb.set_trace()
+    N = [1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000]
     D = [6, 12, 24]
     tan_err_nsim_mean = np.mean(tan_err_nsim, axis = 7)
     tan_err_nsim_std = np.std(tan_err_nsim, axis = 7)
@@ -49,7 +52,7 @@ def create_noisefree_plots():
     fig1 = plt.figure()
     ax1 = plt.gca()
     for i, d in enumerate(D):
-        plt.errorbar(N, tan_err_nsim_mean[:-1,i,:,:,:,:], tan_err_nsim_std[:-1,i,:,:,:,:], fmt = __marker_rotation__[i] + '-', label = "D = {0}".format(d))
+        plt.errorbar(N, tan_err_nsim_mean[:,i,:,:,:,:], tan_err_nsim_std[:,i,:,:,:,:], fmt = __marker_rotation__[i] + '-', label = "D = {0}".format(d))
     ax1.plot(N, np.divide(1.0, N) * 10000, 'k',label = r'$N^{-1}$')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
@@ -62,9 +65,9 @@ def create_noisefree_plots():
     fig2 = plt.figure()
     ax2 = plt.gca()
     for i, d in enumerate(D):
-        ax2.errorbar(N, f_test_nsim_mean[:-1,i,:,:,:,:], f_test_nsim_std[:-1,i,:,:,:,:], fmt = __marker_rotation__[i] + '-', label = "(NSIM) $D = {0}$".format(d))
+        ax2.errorbar(N, f_test_nsim_mean[:,i,:,:,:,:], f_test_nsim_std[:,i,:,:,:,:], fmt = __marker_rotation__[i] + '-', label = "(NSIM) $D = {0}$".format(d))
     for i, d in enumerate(D):
-        ax2.errorbar(N, f_test_kNN_mean[0,:-1,i,:,:], f_test_kNN_std[0,:-1,i,:,:], fmt=__marker_rotation__[i+2] + '--', label = "(KNN) $D = {0}$".format(d))
+        ax2.errorbar(N, f_test_kNN_mean[0,:,i,:,:], f_test_kNN_std[0,:,i,:,:], fmt=__marker_rotation__[i+2] + '--', label = "(KNN) $D = {0}$".format(d))
     ax2.plot(N, np.divide(1.0, N) * 100, 'k', label = r'$N^{-1}$')
     ax2.set_xscale('log')
     ax2.set_yscale('log')
@@ -80,14 +83,14 @@ def create_noisefree_plots():
 
 def create_noisy_plots():
     # Load files for NSIM
-    savestr_base_nsim = 'noisy_helix10'
-    filename_errors_nsim = '../img/' + savestr_base_nsim + '/errors'
+    savestr_base_nsim = 'tangent_test_helix_7'
+    filename_errors_nsim = '../img/2019/' + savestr_base_nsim + '/errors'
     tan_err_nsim = np.load(filename_errors_nsim + '/tangent_error.npy')
     f_CV_nsim = np.load(filename_errors_nsim + '/f_error_CV.npy')
     f_test_nsim = np.load(filename_errors_nsim + '/f_error_test.npy')
     # Load files for SIM
-    savestr_base_sim = 'noisy_identity2'
-    filename_errors_sim = '../img/' + savestr_base_sim + '/errors'
+    savestr_base_sim = 'noisy_identity_1'
+    filename_errors_sim = '../img/2019/' + savestr_base_sim + '/errors'
     tan_err_sim = np.load(filename_errors_sim + '/tangent_error.npy')
     f_CV_sim = np.load(filename_errors_sim + '/f_error_CV.npy')
     f_test_sim = np.load(filename_errors_sim + '/f_error_test.npy')
@@ -103,17 +106,17 @@ def create_noisy_plots():
                     for i6 in range(f_test_nsim.shape[6]):
                         for i7 in range(f_test_nsim.shape[7]):
                             # Get indices of minimum for nsim
-                            row, col = np.unravel_index(f_test_nsim[i1,i2,i3,i4,:,:,i6,i7].argmin(), f_test_nsim[i1,i2,i3,i4,:,:,i6,i7].shape)
-                            print row, col
+                            row, col = np.unravel_index(tan_err_nsim[i1,i2,i3,i4,:,:,i6,i7].argmin(), f_CV_nsim[i1,i2,i3,i4,:,:,i6,i7].shape)
                             tan_errCVed_nsim[i1,i2,i3,i4,0,0,i6,i7] = tan_err_nsim[i1,i2,i3,i4,row,col,i6,i7]
                             f_testCVed_nsim[i1,i2,i3,i4,0,0,i6,i7] = f_test_nsim[i1,i2,i3,i4,row,col,i6,i7]
+                            print i1, i6, row, col
+                            # print tan_err_sim[i1,i2,i3,i4,:,:,i6,i7]
                             # Get indices of minimum for sim
-                            row, col = np.unravel_index(f_test_sim[i1,i2,i3,i4,:,:,i6,i7].argmin(), f_test_sim[i1,i2,i3,i4,:,:,i6,i7].shape)
-                            tan_errCVed_sim[i1,i2,i3,i4,0,0,i6,i7] = tan_err_sim[i1,i2,i3,i4,row,col,i6,i7]
-                            f_testCVed_sim[i1,i2,i3,i4,0,0,i6,i7] = f_test_sim[i1,i2,i3,i4,row,col,i6,i7]
-
-    N = [1000, 2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000]#, 512000]
-    var_f = [0.05, 0.1, 0.2, 0.4]
+                            # row, col = np.unravel_index(f_CV_sim[i1,i2,i3,i4,:,:,i6,i7].argmin(), f_CV_sim[i1,i2,i3,i4,:,:,i6,i7].shape)
+                            # tan_errCVed_sim[i1,i2,i3,i4,0,0,i6,i7] = tan_err_sim[i1,i2,i3,i4,row,col,i6,i7]
+                            # f_testCVed_sim[i1,i2,i3,i4,0,0,i6,i7] = f_test_sim[i1,i2,i3,i4,row,col,i6,i7]
+    N = [2000, 4000, 8000, 16000, 32000, 64000, 128000, 256000, 512000, 1024000, 2048000]
+    var_f = [0.0] + [10,5,2.5,1.25,0.625,0.0325]
     # Mean and std for nsim
     tan_errCVed_nsim_mean = np.mean(tan_errCVed_nsim, axis = 7)
     tan_errCVed_nsim_std = np.std(tan_errCVed_nsim, axis = 7)
@@ -126,11 +129,12 @@ def create_noisy_plots():
     f_testCVed_sim_std = np.std(f_testCVed_sim, axis = 7)
     # Make plot for tangent error
     fig1 = plt.figure()
+    import pdb; pdb.set_trace()
     ax1 = plt.gca()
     for i, var_f_local in enumerate(var_f):
-        plt.errorbar(N, tan_errCVed_nsim_mean[:,:,:,:,:,:,i], tan_errCVed_nsim_std[:,:,:,:,:,:,i], c = __color_rotation__[i], fmt = __marker_rotation__[i] + '-', label = r'$c = {0}$'.format(var_f_local))
-        plt.errorbar(N, tan_errCVed_sim_mean[:,:,:,:,:,:,i], tan_errCVed_sim_std[:,:,:,:,:,:,i], c = __color_rotation__[i], fmt = __marker_rotation__[i] + '-', label = r'$c = {0}$'.format(var_f_local))
-    # ax1.plot(N, np.divide(1.0, np.sqrt(N)) * 1000, 'k',label = r'N^{-1}')
+        plt.errorbar(N, tan_errCVed_nsim_mean[1:,:,:,:,:,:,i], tan_errCVed_nsim_std[1:,:,:,:,:,:,i], c = __color_rotation__[i], fmt = __marker_rotation__[i] + '-', label = r'${0}\%$'.format(var_f_local))
+        # plt.errorbar(N, tan_errCVed_sim_mean[:,:,:,:,:,:,i], tan_errCVed_sim_std[:,:,:,:,:,:,i], c = __color_rotation__[i], fmt = __marker_rotation__[i] + '-', label = r'$c = {0}$'.format(var_f_local))
+    ax1.plot(N, np.divide(1.0, N) * 1000, 'k', label = r'$N^{-1}$')
     ax1.set_xscale('log')
     ax1.set_yscale('log')
     ax1.xaxis.set_major_formatter(logfmt)
@@ -142,8 +146,8 @@ def create_noisy_plots():
     fig2 = plt.figure()
     ax2 = plt.gca()
     for i, var_f_local in enumerate(var_f):
-        ax2.errorbar(N, f_testCVed_nsim_mean[:,:,:,:,:,:,i], f_testCVed_nsim_std[:,:,:,:,:,:,i], c = __color_rotation__[i], fmt = __marker_rotation__[i] + '-', label = r'(Helix) $c= {0}$'.format(var_f_local))
-        ax2.errorbar(N, f_testCVed_sim_mean[:,:,:,:,:,:,i], f_testCVed_sim_std[:,:,:,:,:,:,i], c = __color_rotation__[i], fmt = __marker_rotation__[i] + '--', label = r'(SIM) $c= {0}$'.format(var_f_local))
+        ax2.errorbar(N, f_testCVed_nsim_mean[1:,:,:,:,:,:,i], f_testCVed_nsim_std[1:,:,:,:,:,:,i], c = __color_rotation__[i], fmt = __marker_rotation__[i] + '-', label = r'(Helix) $c= {0}$'.format(var_f_local))
+        # ax2.errorbar(N, f_testCVed_sim_mean[:,:,:,:,:,:,i], f_testCVed_sim_std[:,:,:,:,:,:,i], c = __color_rotation__[i], fmt = __marker_rotation__[i] + '--', label = r'(SIM) $c= {0}$'.format(var_f_local))
     ax2.plot(N, np.divide(1.0, np.power(N, 1.0/3.0)) , 'k', label = r'$N^{-1/3}$')
     ax2.set_xscale('log')
     ax2.set_yscale('log')
@@ -151,7 +155,7 @@ def create_noisy_plots():
     ax2.yaxis.set_major_formatter(logfmt)
     plt.legend(ncol = 2)
     ax2.set_xlabel(r'$N$')
-    ax2.set_ylabel(r'RMSE$(|\hat f_{CV} - f_{CV}|)$')
+    ax2.set_ylabel(r'RMSE$(|\hat f_{k} - f_{k}|)$')
     fig1.savefig(filename_errors_nsim + '/noisy_tangent_error.pdf', format = 'pdf', )
     fig2.savefig(filename_errors_nsim + '/noisy_fun_error.pdf', format = 'pdf', )
     plt.show()
@@ -160,4 +164,5 @@ def create_noisy_plots():
 
 
 if __name__ == "__main__":
-    create_noisy_plots()
+    # plot_error_tan('results/identity/nsim/run_1/')
+    plot_error('results/helix/nsim/run_1/')
