@@ -32,13 +32,16 @@ def plot_error(folder):
         run_for = json.load(f)
     error_cv = np.load(folder + 'f_error_CV.npy')
     error_test = np.load(folder + 'f_error_test.npy')
-    # Perform cross validation
-    error_final = np.zeros(error_cv[:,:,:,:,:,0,:].shape)
-    ind_cv = np.argmin(error_cv, axis = 5)
-    shape = error_cv.shape
-    aux_iter = [(i1,i2,i3,i4,i5,i6) for i1 in range(shape[0]) for i2 in range(shape[1]) for i3 in range(shape[2]) for i4 in range(shape[3]) for i5 in range(shape[4]) for i6 in range(shape[6])]
-    for index in aux_iter:
-        error_final[index] = error_test[index[0], index[1], index[2], index[3], index[4], ind_cv[index], index[5]]
+    # Perform cross validation if necessary
+    if len(error_cv.shape) > 6:
+        error_final = np.zeros(error_cv[:,:,:,:,:,0,:].shape)
+        ind_cv = np.argmin(error_cv, axis = 5)
+        shape = error_cv.shape
+        aux_iter = [(i1,i2,i3,i4,i5,i6) for i1 in range(shape[0]) for i2 in range(shape[1]) for i3 in range(shape[2]) for i4 in range(shape[3]) for i5 in range(shape[4]) for i6 in range(shape[6])]
+        for index in aux_iter:
+            error_final[index] = error_test[index[0], index[1], index[2], index[3], index[4], ind_cv[index], index[5]]
+    else:
+        error_final = error_test
     mean_error_final = np.mean(error_final, axis = 5)
     std_error_final = np.std(error_final, axis = 5)
     plt.figure(figsize = (12,8))

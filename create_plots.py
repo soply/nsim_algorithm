@@ -165,4 +165,4 @@ def create_noisy_plots():
 
 if __name__ == "__main__":
     # plot_error_tan('results/identity/nsim/run_1/')
-    plot_error('results/helix/nsim/run_1/')
+    plot_error('results/scurve/isotron/run_1/')

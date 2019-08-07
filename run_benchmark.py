@@ -95,10 +95,13 @@ def run_example(n_samples,
                                                                 var_f = 0.00,
                                                                 tube = 'l2',
                                                                 args_f = args_f)
+    noisy = (var_f > 0.0) # Required for some estimator to choose parameters optimally (knn, sirknn)
     for idx, param in enumerate(parametergrid):
+
         start = time.time()
         fval_predict_CV, fval_predict_test = estimate(points.T, fval, points_CV.T, points_test.T,
-                                                      estimator, param, N = n_samples, D = ambient_dim)
+                                                      estimator, param, N = n_samples, D = ambient_dim,
+                                                      noisy = noisy)
         end = time.time()
         if CV_split == 0.0:
             f_f_error_CV[i1,i2,i3,i4,idx,rep] = 1e16
@@ -148,14 +151,13 @@ if __name__ == "__main__":
             'repititions' : 20,
             # Estimator information
             'estimator' : {
-                'estimator_id' : 'isotron',
+                'estimator_id' : 'knn',
                 'options' : {
                     'CV_split' : 0.15,
-                    'max_iter' : 1000,
                     # 'learning_rate' : 0.1,
                 },
                 'params' : {
-                    # 'n_hidden' : [20],
+                    'n_neighbors' : [0.5],
                 }
             }
         }
