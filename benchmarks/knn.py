@@ -11,11 +11,7 @@ def knn(X, Y, X_CV, X_test, estimator, param, noisy = True, **kwargs):
     assert 'n_neighbors' in param, "KNN: 'n_neighbors' not in param"
     if noisy:
         # Optimal choice is 1 in the noise free case
-<<<<<<< Updated upstream
         nNei = np.maximum(np.floor(param['n_neighbors'] * np.power(kwargs['N'], 2.0/3.0).astype('int'), 1))
-=======
-        nNei = np.maximum(np.floor(param['n_neighbors'] * np.power(kwargs['N'], 2.0/(2.0 + kwargs['D']))).astype('int'), 1)
->>>>>>> Stashed changes
     else:
         nNei = 1
     knn_reg = KNeighborsRegressor(n_neighbors = nNei)
