@@ -33,6 +33,46 @@ def plot_error(folder):
     error_cv = np.load(folder + 'f_error_CV.npy')
     error_test = np.load(folder + 'f_error_test.npy')
     # Perform cross validation if necessary
+    if len(error_cv[4]) > 1:
+        error_final = np.zeros(error_cv[:,:,:,:,0,:].shape)
+        ind_cv = np.argmin(error_cv, axis = 4)
+        shape = error_cv.shape
+        aux_iter = [(i1,i2,i3,i4,i5) for i1 in range(shape[0]) for i2 in range(shape[1]) for i3 in range(shape[2]) for i4 in range(shape[3]) for i5 in range(shape[5])]
+        for index in aux_iter:
+            error_final[index] = error_test[index[0], index[1], index[2], index[3], ind_cv[index], index[4]]
+    else:
+        error_final = error_test
+    mean_error_final = np.mean(error_final, axis = 4)
+    std_error_final = np.std(error_final, axis = 4)
+    plt.figure(figsize = (12,8))
+    for i, D in enumerate(run_for['D']):
+        for j, sigma_f in enumerate(run_for['sigma_f']):
+            if i < len(run_for['D']) - 1 and j > 0:
+                continue
+            plt.errorbar(run_for['N'][1:], mean_error_final[1:,i,0,j], std_error_final[1:,i,0,j],
+                         color = __color_rotation__[j],
+                         linestyle = __linestyle_rotation__[i],
+                         label = r'$D = {:d},\ \sigma_\varepsilon = {:.0E}$'.format(D, sigma_f))
+    # plt.ylim([1e-5, 1e-1])
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.legend(ncol = 2, prop={'size': 15})
+    plt.xlabel(r'$N$')
+    plt.ylabel(r'$RMSE(\hat f - f)$')
+    ylim_min = np.floor(np.log10(np.min(mean_error_final[1:])))
+    ylim_max = np.ceil(np.log10(np.max(mean_error_final[1:])))
+    plt.ylim([10 ** ylim_min,10 ** ylim_max])
+    plt.tight_layout()
+    plt.savefig(folder + 'function_error.pdf', format = 'pdf', )
+
+
+def plot_error_nsim(folder):
+    # Load parameters
+    with open(folder + '/log.txt') as f:
+        run_for = json.load(f)
+    error_cv = np.load(folder + 'f_error_CV.npy')
+    error_test = np.load(folder + 'f_error_test.npy')
+    # Perform cross validation if necessary
     if len(error_cv.shape) > 6:
         error_final = np.zeros(error_cv[:,:,:,:,:,0,:].shape)
         ind_cv = np.argmin(error_cv, axis = 5)
@@ -53,10 +93,14 @@ def plot_error(folder):
                          color = __color_rotation__[j],
                          linestyle = __linestyle_rotation__[i],
                          label = r'$D = {:d},\ \sigma_\varepsilon = {:.0E}$'.format(D, sigma_f))
+    # plt.ylim([1e-5, 1e-1])
     plt.xscale('log')
     plt.yscale('log')
     plt.legend(ncol = 2, prop={'size': 15})
     plt.xlabel(r'$N$')
     plt.ylabel(r'$RMSE(\hat f - f)$')
+    ylim_min = np.floor(np.log10(np.min(mean_error_final[1:])))
+    ylim_max = np.ceil(np.log10(np.max(mean_error_final[1:])))
+    plt.ylim([10 ** ylim_min,10 ** ylim_max])
     plt.tight_layout()
-    plt.show()
+    plt.savefig(folder + 'function_error.pdf', format = 'pdf', )
