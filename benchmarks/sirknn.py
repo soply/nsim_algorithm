@@ -15,7 +15,11 @@ def sirknn(X, Y, X_CV, X_test, estimator, param, path, noisy = True, **kwargs):
     assert 'n_levelsets' in param, "SIRKNN: 'n_levelsets' not in param"
     if noisy:
         # Optimal choice is 1 in the noise free case
+<<<<<<< Updated upstream
         nNei = np.maximum(np.floor(param['n_neighbors'] * np.power(kwargs['N'], 2.0/3.0)).astype('int'), 1)
+=======
+        nNei = np.maximum(np.floor(param['n_neighbors'] * np.power(kwargs['N'], 2.0/(2.0 + kwargs['D']))).astype('int'), 1)
+>>>>>>> Stashed changes
     else:
         nNei = 1
     sirknn = SIRKnn(n_neighbors = nNei, n_components = param['n_components'],

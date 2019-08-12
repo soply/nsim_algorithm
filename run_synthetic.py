@@ -141,9 +141,9 @@ def run_example(n_samples,
             f_f_error_CV[i1,i2,i3,i4,:,idx,rep] = 1e16
             f_f_error_test[i1,i2,i3,i4,:,idx,rep] = 1e16
             f_tangent_error[i1,i2,i3,i4,:,idx,rep] = 1e16
-        print "Tangent error: ", f_tangent_error[i1,i2,i3,i4,0,idx,rep]
-        print "Function error (CV): ", f_f_error_CV[i1,i2,i3,i4,:,idx,rep]
-        print "Function error (Test): ", f_f_error_test[i1,i2,i3,i4,:,idx,rep]
+        #print "Tangent error: ", f_tangent_error[i1,i2,i3,i4,0,idx,rep]
+        #print "Function error (CV): ", f_f_error_CV[i1,i2,i3,i4,:,idx,rep]
+        #print "Function error (Test): ", f_f_error_test[i1,i2,i3,i4,:,idx,rep]
     print "Finished N = {0}     D = {1}     sigma = {2}     sigma_f = {3}   rep = {4}".format(
         n_samples, ambient_dim, noise, var_f, rep)
 
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         print "Considering manifold {0}".format(manifold['manifold_id'])
         # Parameters
         run_for = {
-            'N' : [200 * (2 ** i) for i in range(10)],
+            'N' : [200 * (2 ** i) for i in range(11)],
             'D' : [4,8,16],
             'sigma_X' : [0.25],
             'sigma_f' : [0.0, 1e-5, 1e-4, 1e-3, 1e-2],
@@ -200,7 +200,7 @@ if __name__ == "__main__":
                                                               len(run_for['sigma_X']),
                                                               len(run_for['sigma_f']),
                                                               run_for['repititions']))
-        savestr_base = '/abc1'
+        savestr_base = '/run_1'
         filename_errors = 'results/' + manifold['manifold_id'] + '/' + run_for['estimator']['estimator_id'] + savestr_base
         try:
             f_tangent_error = np.load(filename_errors + '/tangent_error.npy')
