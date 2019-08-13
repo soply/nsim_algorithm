@@ -42,6 +42,7 @@ def plot_error(folder):
             error_final[index] = error_test[index[0], index[1], index[2], index[3], ind_cv[index], index[4]]
     else:
         error_final = error_test
+
     mean_error_final = np.mean(error_final, axis = 4)
     std_error_final = np.std(error_final, axis = 4)
     plt.figure(figsize = (12,8))

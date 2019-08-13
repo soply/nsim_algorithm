@@ -11,7 +11,7 @@ from evaluation.tangent_error import plot_error as plot_error_tan
 if __name__ == "__main__":
     # plot_error_tan('results/identity/nsim/run_1/')
     manifolds = ['identity', 'scurve', 'helix']
-    estimator_ids = ['linreg','knn','sirknn','nsim','isotron','ffnn']
+    estimator_ids = ['linreg','knn','sirknn','nsim','isotron','ffnn', 'elm']
     for manifold in manifolds:
         for estimator_id in estimator_ids:
             if estimator_id == 'nsim':
@@ -20,4 +20,8 @@ if __name__ == "__main__":
                 continue
             elif estimator_id == 'ffnn' and manifold != 'identity':
                 continue
-            plot_error('results/' + manifold + '/' + estimator_id + '/run_1/')
+            elif estimator_id in['knn', 'sirknn']:
+                plot_error('results/' + manifold + '/' + estimator_id + '/run_2/')
+            elif estimator_id in ['elm']:
+                plot_error('results/' + manifold + '/' + estimator_id + '/run_2/')
+                plot_error('results/' + manifold + '/' + estimator_id + '/run_3/')
