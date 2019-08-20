@@ -125,7 +125,12 @@ def sample_1D_fromClass_lesser(manifold, f_on_manifold,
                                 n_samples, noise_level, tube = 'l2', var_f = 0.0,
                                 return_original = False, args_f = None):
     """ Same as sample_1D_fromClass but reduces output for saving memory. """
-    s_disc, points, _, _, fval, _, _, _ = sample_1D_fromClass(manifold, f_on_manifold,
-                                            n_samples, noise_level, tube = 'l2', var_f = 0.0,
-                                            return_original = False, args_f = None)
+    if return_original:
+        s_disc, points, _, _, fval, _, _, _ = sample_1D_fromClass(manifold, f_on_manifold,
+                                                n_samples, noise_level, tube = tube, var_f = var_f,
+                                                return_original = return_original, args_f = args_f)
+    else:
+        s_disc, points, _, fval, _, _, _ = sample_1D_fromClass(manifold, f_on_manifold,
+                                                n_samples, noise_level, tube = tube, var_f = var_f,
+                                                return_original = return_original, args_f = args_f)
     return s_disc, points, fval
