@@ -28,8 +28,7 @@ from sklearn.model_selection import ParameterGrid
 from synthethic_problem_factory.curves import *
 from synthethic_problem_factory.functions_on_manifolds import (RandomPolynomialIncrements,
                                                                randomPolynomialIncrements_for_parallel)
-from synthethic_problem_factory.sample_synthetic_data import \
-    sample_1D_fromClass
+from synthethic_problem_factory.sample_synthetic_data import sample_1D_fromClass_lesser
 from benchmarks.utils import estimate
 
 # Score functions
@@ -75,43 +74,46 @@ def run_example(n_samples,
     n_samples_CV = np.floor(CV_split * n_samples).astype('int')
     n_samples_train = n_samples - n_samples_CV
     # Get training samples
-    all_pdisc, all_points, all_normalspaces, all_fval, all_fval_clean, all_tangentspaces, all_basepoints = \
-                                            sample_1D_fromClass(manifold,
-                                                                f_on_manifold,
-                                                                n_samples,
-                                                                noise,
-                                                                var_f = var_f,
-                                                                tube = 'l2',
-                                                                args_f = args_f)
+    all_pdisc, all_points, all_fval = sample_1D_fromClass(manifold,
+                                               f_on_manifold,
+                                               n_samples,
+                                               noise,
+                                               var_f = var_f,
+                                               tube = 'l2',
+                                               args_f = args_f)
     # Extract training and CV set
     points, fval = all_points[:,:n_samples_train], all_fval[:n_samples_train]
     points_CV, fval_CV = all_points[:,n_samples_train:], all_fval[n_samples_train:]
     # Get test samples
     n_test_samples = 1000
-    pdisc_test, points_test, normalspaces_test, fval_test, fval_test_clean, tangentspaces_test, basepoints_test = \
-                                            sample_1D_fromClass(manifold,
-                                                                f_on_manifold,
-                                                                n_test_samples, noise,
-                                                                var_f = 0.00,
-                                                                tube = 'l2',
-                                                                args_f = args_f)
+    pdisc_test, points_test, fval_test = sample_1D_fromClass_lesser(manifold,
+                                                        f_on_manifold,
+                                                        n_test_samples,
+                                                        noise,
+                                                        var_f = 0.00,
+                                                        tube = 'l2',
+                                                        args_f = args_f)
     noisy = (var_f > 0.0) # Required for some estimator to choose parameters optimally (knn, sirknn)
     for idx, param in enumerate(parametergrid):
-
-        start = time.time()
-        fval_predict_CV, fval_predict_test = estimate(points.T, fval, points_CV.T, points_test.T,
-                                                      estimator, param, N = n_samples, D = ambient_dim,
-                                                      noisy = noisy)
-        end = time.time()
-        if CV_split == 0.0:
+        try:
+            start = time.time()
+            fval_predict_CV, fval_predict_test = estimate(points.T, fval, points_CV.T, points_test.T,
+                                                          estimator, param, N = n_samples, D = ambient_dim,
+                                                          noisy = noisy)
+            end = time.time()
+            if CV_split == 0.0:
+                f_f_error_CV[i1,i2,i3,i4,idx,rep] = 1e16
+            else:
+                f_f_error_CV[i1,i2,i3,i4,idx,rep] = RMSE(np.reshape(fval_predict_CV, \
+                                                                            (1,-1)), np.reshape(fval_CV, (1,-1)))
+                print "Function error (CV): ", f_f_error_CV[i1,i2,i3,i4,idx,rep]
+            f_f_error_test[i1,i2,i3,i4,idx,rep] = RMSE(np.reshape(fval_predict_test, \
+                                                                            (1,-1)), np.reshape(fval_test, (1,-1)))
+            comp_time[i1,i2,i3,i4,idx,rep] = end - start
+        except np.linalg.LinAlgError as e:
             f_f_error_CV[i1,i2,i3,i4,idx,rep] = 1e16
-        else:
-            f_f_error_CV[i1,i2,i3,i4,idx,rep] = RMSE(np.reshape(fval_predict_CV, \
-                                                                        (1,-1)), np.reshape(fval_CV, (1,-1)))
-            print "Function error (CV): ", f_f_error_CV[i1,i2,i3,i4,idx,rep]
-        f_f_error_test[i1,i2,i3,i4,idx,rep] = RMSE(np.reshape(fval_predict_test, \
-                                                                        (1,-1)), np.reshape(fval_test, (1,-1)))
-        comp_time[i1,i2,i3,i4,idx,rep] = end - start
+            f_f_error_test[i1,i2,i3,i4,idx,rep] = 1e16
+            comp_time[i1,i2,i3,i4,idx,rep] = 1e16
         start = end
         print "Function error (Test): ", f_f_error_test[i1,i2,i3,i4,idx,rep]
     print "Finished N = {0}     D = {1}     sigma = {2}     sigma_f = {3}   rep = {4}".format(
@@ -126,8 +128,8 @@ if __name__ == "__main__":
         n_jobs = 1 # Default 1 jobs
     print 'Using n_jobs = {0}'.format(n_jobs)
     # Define manifolds to test
-    manifolds = [{'start' : 0, 'end' : 1.0, 'manifold_id' : 'identity'},
-                {'start' : 0, 'end' : np.pi/2.0, 'manifold_id' : 'scurve'},
+    manifolds = [#{'start' : 0, 'end' : 1.0, 'manifold_id' : 'identity'},
+                {'start' : 0, 'end' : np.pi, 'manifold_id' : 'scurve'},
                 {'start' : 0, 'end' : 2.0 * np.pi, 'manifold_id' : 'helix'}]
     for manifold in manifolds:
         # Sample random function, or load if already exist
@@ -144,20 +146,29 @@ if __name__ == "__main__":
         print "Considering manifold {0}".format(manifold['manifold_id'])
         # Parameters
         run_for = {
-            'N' : [200 * (2 ** i) for i in range(10)],
+            'N' : [100 * (2 ** i) for i in range(10)],
             'D' : [4,8,16],
             'sigma_X' : [0.25],
-            'sigma_f' : [0.0, 1e-5, 1e-4, 1e-3, 1e-2],
+            'sigma_f' : [1e-2],
             'repititions' : 20,
             # Estimator information
             'estimator' : {
-                'estimator_id' : 'knn',
+                'estimator_id' : 'ffnn',
                 'options' : {
+                    'activation_func' : 'Tanh',
                     'CV_split' : 0.15,
-                    # 'learning_rate' : 0.1,
+                    'valid_size' : 0.1,
+                    'batch_size' : 64,
+                    'learning_rate' : 0.1,
+                    'learning_rule' : 'adagrad'
+                    # 'n_components': 1,
+                    # 'rescale' : False,
                 },
                 'params' : {
-                    'n_neighbors' : [0.5],
+                    'n_hidden' : [5,10,15,20,25,30,35,40],
+                    # 'n_components' : [1],
+                    # 'n_neighbors' : [0.5],
+                    # 'n_levelsets' : [2 ** i for i in range(14)],
                 }
             }
         }
@@ -167,7 +178,7 @@ if __name__ == "__main__":
                                                               len(run_for['sigma_X']),
                                                               len(run_for['sigma_f']),
                                                               run_for['repititions']))
-        savestr_base = 'abc1'
+        savestr_base = 'ffnn_test'
         filename_errors = 'results/' + manifold['manifold_id'] + '/' + run_for['estimator']['estimator_id'] + savestr_base
         try:
             f_f_error_CV = np.load(filename_errors + '/f_error_CV.npy')

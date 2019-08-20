@@ -28,8 +28,7 @@ from sklearn.model_selection import ParameterGrid
 from synthethic_problem_factory.curves import *
 from synthethic_problem_factory.functions_on_manifolds import (RandomPolynomialIncrements,
                                                                randomPolynomialIncrements_for_parallel)
-from synthethic_problem_factory.sample_synthetic_data import \
-    sample_1D_fromClass
+from synthethic_problem_factory.sample_synthetic_data import sample_1D_fromClass_lesser
 
 from estimator import NSIM_Estimator
 
@@ -78,26 +77,24 @@ def run_example(n_samples,
     n_samples_CV = np.floor(CV_split * n_samples).astype('int')
     n_samples_train = n_samples - n_samples_CV
     # Get training samples
-    all_pdisc, all_points, all_normalspaces, all_fval, all_fval_clean, all_tangentspaces, all_basepoints = \
-                                            sample_1D_fromClass(manifold,
-                                                                f_on_manifold,
-                                                                n_samples,
-                                                                noise,
-                                                                var_f = var_f,
-                                                                tube = 'l2',
-                                                                args_f = args_f)
+    all_pdisc, all_points, all_fval = sample_1D_fromClass_lesser(manifold,
+                                                            f_on_manifold,
+                                                            n_samples,
+                                                            noise,
+                                                            var_f = var_f,
+                                                            tube = 'l2',
+                                                            args_f = args_f)
     # Extract training and CV set
     pdisc, points, fval = all_pdisc[:n_samples_train], all_points[:,:n_samples_train], all_fval[:n_samples_train]
     points_CV, fval_CV = all_points[:,n_samples_train:], all_fval[n_samples_train:]
+    del all_pdisc, all_points, all_fval
     # Get test samples
     n_test_samples = 1000
-    pdisc_test, points_test, normalspaces_test, fval_test, fval_test_clean, tangentspaces_test, basepoints_test = \
-                                            sample_1D_fromClass(manifold,
-                                                                f_on_manifold,
-                                                                n_test_samples, noise,
-                                                                var_f = 0.00,
-                                                                tube = 'l2',
-                                                                args_f = args_f)
+    _, points_test, fval_test = sample_1D_fromClass_lesser(manifold,f_on_manifold,
+                                                            n_test_samples, noise,
+                                                            var_f = 0.00,
+                                                            tube = 'l2',
+                                                            args_f = args_f)
     for idx, param in enumerate(parametergrid):
         if var_f == 0.0:
             nNei = [1] # Optimal choice kNN for noisefree data
@@ -156,8 +153,8 @@ if __name__ == "__main__":
         n_jobs = 1 # Default 1 jobs
     print 'Using n_jobs = {0}'.format(n_jobs)
     # Define manifolds to test
-    manifolds = [{'start' : 0, 'end' : 1.0, 'manifold_id' : 'identity'},
-                {'start' : 0, 'end' : np.pi/2.0, 'manifold_id' : 'scurve'},
+    manifolds = [#{'start' : 0, 'end' : 1.0, 'manifold_id' : 'identity'},
+                {'start' : 0, 'end' : np.pi, 'manifold_id' : 'scurve'},
                 {'start' : 0, 'end' : 2.0 * np.pi, 'manifold_id' : 'helix'}]
     for manifold in manifolds:
         # Sample random function, or load if already exist
@@ -174,10 +171,10 @@ if __name__ == "__main__":
         print "Considering manifold {0}".format(manifold['manifold_id'])
         # Parameters
         run_for = {
-            'N' : [200 * (2 ** i) for i in range(11)],
+            'N' : [200 * (2 ** i) for i in range(13)],
             'D' : [4,8,16],
             'sigma_X' : [0.25],
-            'sigma_f' : [0.0, 1e-5, 1e-4, 1e-3, 1e-2],
+            'sigma_f' : [0.0, 1e-4, 1e-3, 1e-2, 1e-1],
             'repititions' : 20,
             # Estimator information
             'estimator' : {
@@ -200,7 +197,7 @@ if __name__ == "__main__":
                                                               len(run_for['sigma_X']),
                                                               len(run_for['sigma_f']),
                                                               run_for['repititions']))
-        savestr_base = '/run_1'
+        savestr_base = '/run_3'
         filename_errors = 'results/' + manifold['manifold_id'] + '/' + run_for['estimator']['estimator_id'] + savestr_base
         try:
             f_tangent_error = np.load(filename_errors + '/tangent_error.npy')
